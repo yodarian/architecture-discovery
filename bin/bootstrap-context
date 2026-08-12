@@ -1,0 +1,95 @@
+#!/usr/bin/env php
+<?php
+// Entrypoint that prefers a Symfony Console application if available.
+if (PHP_SAPI !== 'cli') {
+    echo "This script must be run from the command line.\n";
+    exit(2);
+}
+
+$projectRoot = dirname(__DIR__);
+$autoload = $projectRoot . '/vendor/autoload.php';
+if (is_file($autoload)) {
+    require $autoload;
+    // Try to find and run Symfony Console app if defined in application bootstrap
+    if (class_exists('Symfony\\Component\\Console\\Application')) {
+        $app = new \Symfony\Component\Console\Application();
+        // register our command if present
+        $cmdClass = 'ArchitectureDiscovery\\Application\\Command\\BootstrapContextCommand';
+        if (class_exists($cmdClass)) {
+            $app->add(new $cmdClass());
+            $app->run();
+            exit(0);
+        }
+    }
+}
+
+// Fallback to original simple script behavior
+// Usage: php bin/bootstrap-context /path/to/project
+$argv0 = $argv[0] ?? 'bootstrap-context';
+if (count($argv) < 2) {
+    echo "Usage: php {$argv0} /path/to/project\n";
+    exit(2);
+}
+
+$target = $argv[1];
+if (!is_dir($target)) {
+    echo "Target path does not exist or is not a directory: {$target}\n";
+    exit(2);
+}
+
+$scriptDir = dirname(__FILE__);
+$template = realpath($scriptDir . '/../resources/templates/CONTEXT.md');
+if ($template === false || !is_file($template)) {
+    echo "Template not found at resources/templates/CONTEXT.md\n";
+    exit(3);
+}
+
+$dest = rtrim($target, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'CONTEXT.md';
+if (file_exists($dest)) {
+    echo "CONTEXT.md already exists at target (will not overwrite): {$dest}\n";
+    exit(1);
+}
+
+$content = file_get_contents($template);
+if ($content === false) {
+    echo "Failed to read template.\n";
+    exit(3);
+}
+
+// Basic detection for project name and framework
+$projectName = basename(realpath($target));
+$projectPath = realpath($target);
+
+$framework = 'none';
+// detect CakePHP by common folders or composer.json
+if (is_dir($target . '/src/Controller') || is_dir($target . '/src/Model')) {
+    $framework = 'cakephp';
+} else {
+    $composerJson = $target . '/composer.json';
+    if (is_file($composerJson)) {
+        $cj = json_decode(file_get_contents($composerJson), true);
+        if (is_array($cj)) {
+            $s = json_encode($cj);
+            if (stripos($s, 'cakephp') !== false) {
+                $framework = 'cakephp';
+            }
+        }
+    }
+}
+
+$replacements = [
+    '<project-name>' => $projectName,
+    '<project-path>' => $projectPath,
+    '<cakephp|none>' => $framework,
+    '<date>' => date('Y-m-d'),
+];
+
+$out = str_replace(array_keys($replacements), array_values($replacements), $content);
+
+if (file_put_contents($dest, $out) === false) {
+    echo "Failed to write CONTEXT.md to {$dest}\n";
+    exit(4);
+}
+
+echo "Created CONTEXT.md at: {$dest}\n";
+exit(0);
