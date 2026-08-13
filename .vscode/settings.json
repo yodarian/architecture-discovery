@@ -1,0 +1,10 @@
+{
+  "workbench.editor.enablePreview": false,
+  "workbench.editor.enablePreviewFromQuickOpen": false,
+  "terminal.integrated.cwd": "${workspaceFolder}",
+  "remote.Wsl.fileWatcher.polling": true,
+  "explorer.excludeGitIgnore": false,
+  "files.exclude": {
+    "**/.git": true
+  }
+}
