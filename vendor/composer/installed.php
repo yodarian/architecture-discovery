@@ -1,9 +1,9 @@
 <?php return array(
     'root' => array(
         'name' => 'architecture-discovery/tool',
-        'pretty_version' => 'dev-master',
-        'version' => 'dev-master',
-        'reference' => 'fa068eb6a4d50f4362d82b3f4f832427c6ea8f2b',
+        'pretty_version' => '1.0.0+no-version-set',
+        'version' => '1.0.0.0',
+        'reference' => null,
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -11,9 +11,9 @@
     ),
     'versions' => array(
         'architecture-discovery/tool' => array(
-            'pretty_version' => 'dev-master',
-            'version' => 'dev-master',
-            'reference' => 'fa068eb6a4d50f4362d82b3f4f832427c6ea8f2b',
+            'pretty_version' => '1.0.0+no-version-set',
+            'version' => '1.0.0.0',
+            'reference' => null,
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),
