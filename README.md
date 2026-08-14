@@ -9,6 +9,9 @@ Before you start, make sure you have the following installed on your machine:
 - Git
 - Docker
 - Docker Compose (or Docker Desktop with Compose support)
+- Make (for convenient commands)
+
+See [docker/README.md](docker/README.md) for Docker-specific configuration details.
 
 ## Clone the repository
 

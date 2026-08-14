@@ -1,8 +1,10 @@
 services:
   app:
-    build: .
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
     volumes:
-      - ./:/app:delegated
+      - ../:/app:delegated
     working_dir: /app
     environment:
       - COMPOSER_ALLOW_SUPERUSER=1

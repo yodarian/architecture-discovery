@@ -1,6 +1,6 @@
 .PHONY: help start stop shell composer-install test
 
-DOCKER_COMPOSE := docker-compose
+DOCKER_COMPOSE := docker-compose -f docker/docker-compose.yml
 DOCKER_COMPOSE_RUN := $(DOCKER_COMPOSE) run --rm app
 
 help:
