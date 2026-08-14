@@ -8,6 +8,7 @@ RUN apt-get update \
         ca-certificates \
         libzip-dev \
     && docker-php-ext-install zip \
+    && git config --global --add safe.directory /app \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy composer from the official composer image
