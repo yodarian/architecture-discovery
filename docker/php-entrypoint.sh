@@ -3,9 +3,6 @@ set -euo pipefail
 
 cd /app || exit 1
 
-# Install composer dependencies if composer.json exists
-if [ -f composer.json ]; then
-  composer install --prefer-dist --no-interaction --no-progress || true
-fi
-
+# Simply exec the passed command
+# Composer installation is now controlled via Make or manual invocation
 exec "$@"

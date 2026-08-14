@@ -22,7 +22,14 @@
 
 - **Dockerfile**: Multi-stage build with PHP 8.2 CLI, Composer 2, Git, and Zip extension
 - **docker-compose.yml**: Service configuration with delegated volume mount for performance
-- **PHP Entrypoint**: Automatic composer install with error handling
+- **PHP Entrypoint**: Simplified entrypoint that just executes the passed command (no automatic composer install)
+- **Makefile**: Commands for developer convenience:
+  - `make build` - Build Docker image
+  - `make start` - Start an interactive container shell
+  - `make shell` - Alias for start
+  - `make composer-install` - Install PHP dependencies (manual control)
+  - `make test` - Run PHPUnit test suite
+  - `make stop` - Stop and remove containers
 - **CLI Tool**: Symfony Console application that generates CONTEXT.md files for target projects
 - **Test Runner**: PHPUnit configured for test execution in container environment
 
