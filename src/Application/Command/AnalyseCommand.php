@@ -12,6 +12,7 @@ use ArchitectureDiscovery\Domain\Model\ProjectMetadata;
 use ArchitectureDiscovery\Domain\Model\Dependency;
 use ArchitectureDiscovery\Infrastructure\Scanner\FileScanner;
 use ArchitectureDiscovery\Infrastructure\Parser\PhpClassExtractor;
+use ArchitectureDiscovery\Infrastructure\Analyzer\CakePhpAnalyzer;
 
 /**
  * Analyse command scans a PHP project and generates the canonical architecture model.
@@ -168,6 +169,8 @@ final class AnalyseCommand extends Command
         }
 
         $extractor = new PhpClassExtractor($projectPath);
+        $cakePhpAnalyzer = new CakePhpAnalyzer();
+        $cakeRelationships = [];
         $classCount = 0;
 
         foreach ($files as $file) {
@@ -177,6 +180,10 @@ final class AnalyseCommand extends Command
                     $architecture->addClass($class);
                     $classCount++;
                 }
+                $cakeRelationships = array_merge(
+                    $cakeRelationships,
+                    $cakePhpAnalyzer->analyzeFile($file->getRealPath())
+                );
             } catch (\Exception $e) {
                 if ($output->isVerbose()) {
                     $output->writeln("<comment>  Warning: Failed to parse {$file->getFilename()}: {$e->getMessage()}</comment>");
@@ -185,6 +192,7 @@ final class AnalyseCommand extends Command
         }
 
         $this->addStructuralDependencies($architecture);
+        $this->addCakePhpDependencies($architecture, $cakeRelationships);
 
         if ($output->isVerbose()) {
             $output->writeln("  Extracted {$classCount} classes, interfaces, and traits");
@@ -231,6 +239,71 @@ final class AnalyseCommand extends Command
                 }
             }
         }
+    }
+
+    /**
+     * Add CakePHP relationships when their target resolves to a discovered class.
+     * Unresolved dynamic calls are intentionally omitted from graph edges but are
+     * still detected by CakePhpAnalyzer for future reporting.
+     *
+     * @param array<int, array{from: string, target: string|null, type: string, weight: int, metadata: array<string, mixed>}> $relationships
+     */
+    private function addCakePhpDependencies(Architecture $architecture, array $relationships): void
+    {
+        foreach ($relationships as $relationship) {
+            if ($relationship['target'] === null) {
+                continue;
+            }
+
+            $from = $architecture->getClass($relationship['from']);
+            $to = $this->resolveCakePhpTarget($architecture, $relationship['from'], $relationship['target']);
+            if ($from === null || $to === null || $from === $to) {
+                continue;
+            }
+
+            $metadata = $relationship['metadata'];
+            $metadata['target'] = $relationship['target'];
+            $architecture->addDependency(new Dependency(
+                $from,
+                $to,
+                $relationship['type'],
+                $relationship['weight'],
+                $metadata
+            ));
+        }
+    }
+
+    private function resolveCakePhpTarget(Architecture $architecture, string $from, string $targetName): ?\ArchitectureDiscovery\Domain\Model\ClassEntity
+    {
+        $source = $architecture->getClass($from);
+        if ($source === null) {
+            return null;
+        }
+
+        $targetName = ltrim($targetName, '\\');
+        $candidates = str_contains($targetName, '\\')
+            ? [$targetName]
+            : array_filter([
+                $source->getNamespace() . '\\' . $targetName . 'Table',
+                $source->getNamespace() . '\\' . $targetName,
+                $targetName . 'Table',
+                $targetName,
+            ]);
+
+        foreach ($candidates as $candidate) {
+            $resolved = $architecture->getClass($candidate);
+            if ($resolved !== null) {
+                return $resolved;
+            }
+        }
+
+        foreach ($architecture->getClasses() as $class) {
+            if ($class->getName() === $targetName || $class->getName() === $targetName . 'Table') {
+                return $class;
+            }
+        }
+
+        return null;
     }
 
     /**
