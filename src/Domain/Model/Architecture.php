@@ -12,6 +12,10 @@ final class Architecture
     private array $classes = [];
     /** @var Dependency[] */
     private array $dependencies = [];
+    /** @var array<string, mixed> */
+    private array $metrics = [];
+    /** @var array<int, array<string, mixed>> */
+    private array $clusters = [];
 
     public function __construct(ProjectMetadata $metadata)
     {
@@ -65,6 +69,38 @@ final class Architecture
     }
 
     /**
+     * @param array<string, mixed> $metrics
+     */
+    public function setMetrics(array $metrics): void
+    {
+        $this->metrics = $metrics;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getMetrics(): array
+    {
+        return $this->metrics;
+    }
+
+    /**
+     * @param array<int, array<string, mixed>> $clusters
+     */
+    public function setClusters(array $clusters): void
+    {
+        $this->clusters = $clusters;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getClusters(): array
+    {
+        return $this->clusters;
+    }
+
+    /**
      * Serialize to array suitable for JSON output
      *
      * @return array<string, mixed>
@@ -77,6 +113,8 @@ final class Architecture
             'project' => $this->metadata->toArray(),
             'classes' => array_map(fn(ClassEntity $c) => $c->toArray(), $this->getClasses()),
             'dependencies' => array_map(fn(Dependency $d) => $d->toArray(), $this->getDependencies()),
+            'metrics' => $this->metrics,
+            'clusters' => $this->clusters,
         ];
     }
 }

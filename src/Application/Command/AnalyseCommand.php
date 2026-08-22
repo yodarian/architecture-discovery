@@ -13,6 +13,10 @@ use ArchitectureDiscovery\Domain\Model\Dependency;
 use ArchitectureDiscovery\Infrastructure\Scanner\FileScanner;
 use ArchitectureDiscovery\Infrastructure\Parser\PhpClassExtractor;
 use ArchitectureDiscovery\Infrastructure\Analyzer\CakePhpAnalyzer;
+use ArchitectureDiscovery\Analysis\ArchitectureMetricsCalculator;
+use ArchitectureDiscovery\Clustering\ConnectedComponentsClusterer;
+use ArchitectureDiscovery\Reporting\GraphvizRenderer;
+use ArchitectureDiscovery\Reporting\HtmlReportGenerator;
 
 /**
  * Analyse command scans a PHP project and generates the canonical architecture model.
@@ -90,6 +94,12 @@ final class AnalyseCommand extends Command
             }
         }
 
+        $formats = $this->getFormats($input->getOption('format') ?? []);
+        if ($formats === null) {
+            $output->writeln('<error>Unsupported format. Supported formats: json, dot, svg, html.</error>');
+            return 1;
+        }
+
         // Get exclusion list
         $excludeDirs = $input->getOption('exclude') ?? [];
         if (!empty($excludeDirs)) {
@@ -127,8 +137,27 @@ final class AnalyseCommand extends Command
 
         // Output results
         $outputFile = $outputDir . DIRECTORY_SEPARATOR . 'architecture.json';
-        $success = $this->writeArchitectureJson($architecture, $outputFile);
+        $architecture->setMetrics((new ArchitectureMetricsCalculator())->calculate($architecture));
+        $architecture->setClusters((new ConnectedComponentsClusterer())->cluster($architecture));
+        $renderer = new GraphvizRenderer();
+        $artifacts = [];
+        if (in_array('dot', $formats, true)) {
+            $artifacts['graph.dot'] = $renderer->renderDot($architecture);
+        }
+        if (in_array('svg', $formats, true)) {
+            $artifacts['graph.svg'] = $renderer->renderSvg($architecture);
+        }
+        if (in_array('html', $formats, true)) {
+            $artifacts['index.html'] = (new HtmlReportGenerator())->render($architecture);
+        }
+        foreach ($artifacts as $name => $content) {
+            if (file_put_contents($outputDir . DIRECTORY_SEPARATOR . $name, $content) === false) {
+                $output->writeln("<error>Failed to write {$name}</error>");
+                return 1;
+            }
+        }
 
+        $success = $this->writeArchitectureJson($architecture, $outputFile);
         if (!$success) {
             $output->writeln("<error>Failed to write architecture.json</error>");
             return 1;
@@ -139,9 +168,34 @@ final class AnalyseCommand extends Command
         $output->writeln("<info>Analysis complete!</info>");
         $output->writeln("  Classes/Interfaces/Traits: {$classCount}");
         $output->writeln("  Dependencies: {$dependencyCount}");
+        $output->writeln("  Clusters: " . count($architecture->getClusters()));
         $output->writeln("  Output: {$outputFile}");
 
         return 0;
+    }
+
+    /**
+     * @param array<int, string> $requestedFormats
+     * @return string[]|null
+     */
+    private function getFormats(array $requestedFormats): ?array
+    {
+        if ($requestedFormats === []) {
+            return ['json', 'dot', 'svg', 'html'];
+        }
+
+        $formats = [];
+        foreach ($requestedFormats as $requestedFormat) {
+            foreach (explode(',', $requestedFormat) as $format) {
+                $format = strtolower(trim($format));
+                if ($format === '' || !in_array($format, ['json', 'dot', 'svg', 'html'], true)) {
+                    return null;
+                }
+                $formats[] = $format;
+            }
+        }
+
+        return array_values(array_unique($formats));
     }
 
     /**

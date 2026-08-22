@@ -69,5 +69,12 @@ PHP
         }
         $this->assertSame(3, $dependenciesByType['orm_relation']['weight']);
         $this->assertSame(2, $dependenciesByType['dynamic_call']['weight']);
+        $this->assertArrayHasKey('metrics', $data);
+        $this->assertArrayHasKey('clusters', $data);
+        $this->assertFileExists($this->tempDir . '/out/graph.dot');
+        $this->assertFileExists($this->tempDir . '/out/graph.svg');
+        $this->assertFileExists($this->tempDir . '/out/index.html');
+        $this->assertStringContainsString('<svg', file_get_contents($this->tempDir . '/out/graph.svg'));
+        $this->assertStringContainsString('Architecture Overview', file_get_contents($this->tempDir . '/out/index.html'));
     }
 }

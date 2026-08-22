@@ -159,6 +159,29 @@
           }
         }
       }
+    },
+    "metrics": {
+      "type": "object",
+      "description": "Derived graph and coupling metrics calculated from the architecture model.",
+      "properties": {
+        "classCount": { "type": "integer" },
+        "dependencyCount": { "type": "integer" },
+        "cakePhpDependencyCount": { "type": "integer" },
+        "classes": { "type": "object" }
+      }
+    },
+    "clusters": {
+      "type": "array",
+      "description": "Suggested module candidates derived from dependency connected components.",
+      "items": {
+        "type": "object",
+        "required": ["id", "classes", "metrics"],
+        "properties": {
+          "id": { "type": "string" },
+          "classes": { "type": "array", "items": { "type": "string" } },
+          "metrics": { "type": "object" }
+        }
+      }
     }
   }
 }
