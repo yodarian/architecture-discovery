@@ -69,20 +69,54 @@ docker-compose down
 
 ## Run the app
 
-The CLI entry point is:
+The CLI runs inside the container against paths visible inside that container. The
+repository itself is mounted from the host into `/app`, so the repository must be
+addressed as `/app` from inside the container. A project does not need to be
+copied into the Docker image, but any external project must be made visible with
+an additional bind mount.
+
+To analyze the mounted repository:
 
 ```bash
-make start
-php bin/bootstrap-context /path/to/project
+docker compose -f docker/docker-compose.yml run --rm app \
+	php bin/bootstrap-context analyse /app \
+	--output /app/build/architecture
 ```
 
-Or, from outside the container:
+To analyze another project on the host, mount it at a container path and use
+that container path in the command. For example, if the project is located at
+`/home/fkas/projects/my-app` on the host:
 
 ```bash
-docker-compose run --rm app php bin/bootstrap-context /path/to/project
+docker compose -f docker/docker-compose.yml run --rm \
+	-v /home/fkas/projects/my-app:/projects/my-app:ro \
+	app php bin/bootstrap-context analyse /projects/my-app \
+	--output /app/build/my-app
 ```
 
-This generates a `CONTEXT.md` file for the target project based on the bundled template.
+The host path and container path are different namespaces:
+
+```text
+Host:      /home/fkas/projects/my-app
+Container: /projects/my-app
+```
+
+The command must use `/projects/my-app`. The `:ro` flag mounts the target
+project read-only, while output is written to `/app/build/my-app`, which is
+inside the repository bind mount and therefore appears on the host.
+
+If PHP and Composer are installed locally, the CLI can also be run directly on
+the host with the host project path. Docker is provided for a consistent PHP
+runtime and does not require projects to be copied into the image.
+
+To generate a `CONTEXT.md` file instead of running analysis, use the existing
+bootstrap command:
+
+```bash
+docker compose -f docker/docker-compose.yml run --rm \
+	-v /home/fkas/projects/my-app:/projects/my-app:ro \
+	app php bin/bootstrap-context app:bootstrap-context /projects/my-app
+```
 
 ## Run tests
 
