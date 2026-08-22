@@ -105,6 +105,27 @@ The command must use `/projects/my-app`. The `:ro` flag mounts the target
 project read-only, while output is written to `/app/build/my-app`, which is
 inside the repository bind mount and therefore appears on the host.
 
+The same workflow is available through Make. Use `PROJECT` for the host path;
+the target project is mounted read-only inside Docker automatically:
+
+```bash
+make analyse PROJECT=/home/fkas/projects/my-app
+```
+
+By default, artifacts are written to
+`/home/fkas/projects/my-app/build/architecture`. Override the host output
+directory with `OUTPUT`:
+
+```bash
+make analyse \
+	PROJECT=/home/fkas/projects/my-app \
+	OUTPUT=/home/fkas/architecture-output/my-app
+```
+
+Make does not reliably accept a host path as a positional argument after a
+target, so use the `PROJECT=/path` form rather than
+`make analyse --/path/to/project`.
+
 If PHP and Composer are installed locally, the CLI can also be run directly on
 the host with the host project path. Docker is provided for a consistent PHP
 runtime and does not require projects to be copied into the image.
