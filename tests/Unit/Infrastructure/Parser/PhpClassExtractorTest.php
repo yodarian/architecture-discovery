@@ -148,6 +148,42 @@ PHP
         $this->assertContains('App\Model\Timestamps', $traits);
     }
 
+    public function testExtractClassTypeDependencies(): void
+    {
+        $phpFile = $this->tempDir . '/OrderService.php';
+        file_put_contents($phpFile, <<<'PHP'
+<?php
+namespace App\Service;
+
+use App\Model\Order;
+use App\Repository\OrderRepository;
+
+class OrderService
+{
+    private OrderRepository $repository;
+
+    public function __construct(OrderRepository $repository)
+    {
+        $this->repository = $repository;
+    }
+
+    public function find(): Order
+    {
+        return new Order();
+    }
+}
+PHP
+        );
+
+        $extractor = new PhpClassExtractor($this->tempDir);
+        $classes = $extractor->extractFromFile($phpFile);
+
+        $this->assertCount(1, $classes);
+        $dependencies = $classes[0]->getTypeDependencies();
+        $this->assertContains('App\Model\Order', $dependencies);
+        $this->assertContains('App\Repository\OrderRepository', $dependencies);
+    }
+
     public function testExtractAbstractClass(): void
     {
         $phpFile = $this->tempDir . '/AbstractService.php';

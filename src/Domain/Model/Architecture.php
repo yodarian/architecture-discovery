@@ -33,7 +33,11 @@ final class Architecture
      */
     public function getClasses(): array
     {
-        return array_values($this->classes);
+        $classes = array_values($this->classes);
+        usort($classes, fn(ClassEntity $left, ClassEntity $right) =>
+            strcmp($left->getFullyQualifiedName(), $right->getFullyQualifiedName())
+        );
+        return $classes;
     }
 
     public function getClass(string $fullyQualifiedName): ?ClassEntity
@@ -52,7 +56,12 @@ final class Architecture
      */
     public function getDependencies(): array
     {
-        return array_values($this->dependencies);
+        $dependencies = array_values($this->dependencies);
+        usort($dependencies, fn(Dependency $left, Dependency $right) => strcmp(
+            $left->getFrom()->getFullyQualifiedName() . '|' . $left->getTo()->getFullyQualifiedName() . '|' . $left->getType(),
+            $right->getFrom()->getFullyQualifiedName() . '|' . $right->getTo()->getFullyQualifiedName() . '|' . $right->getType()
+        ));
+        return $dependencies;
     }
 
     /**

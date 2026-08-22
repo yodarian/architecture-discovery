@@ -136,4 +136,23 @@ final class ArchitectureTest extends TestCase
         $this->assertCount(1, $array['classes']);
         $this->assertCount(0, $array['dependencies']);
     }
+
+    public function testSerializationOrdersClassesAndDependenciesDeterministically(): void
+    {
+        $first = new ClassEntity('App\First', ClassEntity::TYPE_CLASS, 'App', 'First', 'src/First.php', 1);
+        $second = new ClassEntity('App\Second', ClassEntity::TYPE_CLASS, 'App', 'Second', 'src/Second.php', 1);
+
+        $this->architecture->addClass($second);
+        $this->architecture->addClass($first);
+        $this->architecture->addDependency(new Dependency($second, $first, Dependency::TYPE_USES));
+        $this->architecture->addDependency(new Dependency($first, $second, Dependency::TYPE_USES));
+
+        $serialized = $this->architecture->toArray();
+
+        $this->assertSame(['App\First', 'App\Second'], array_column($serialized['classes'], 'fqn'));
+        $this->assertSame(
+            ['App\First', 'App\Second'],
+            array_column($serialized['dependencies'], 'from')
+        );
+    }
 }

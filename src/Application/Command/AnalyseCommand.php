@@ -214,6 +214,22 @@ final class AnalyseCommand extends Command
                     $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_TRAIT_USE, 2));
                 }
             }
+
+            $structuralDependencies = array_merge(
+                $class->getInterfaces(),
+                $class->getTraits(),
+                $class->getExtends() !== null ? [$class->getExtends()] : []
+            );
+            foreach ($class->getTypeDependencies() as $typeName) {
+                if (in_array($typeName, $structuralDependencies, true)) {
+                    continue;
+                }
+
+                $target = $architecture->getClass($typeName);
+                if ($target !== null && $target !== $class) {
+                    $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_USES, 1));
+                }
+            }
         }
     }
 

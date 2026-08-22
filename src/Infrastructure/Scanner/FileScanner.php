@@ -59,6 +59,10 @@ final class FileScanner
             }
         }
 
+        usort($phpFiles, fn(SplFileInfo $left, SplFileInfo $right) =>
+            strcmp($this->getRelativePath($directory, $left->getPathname()), $this->getRelativePath($directory, $right->getPathname()))
+        );
+
         return $phpFiles;
     }
 

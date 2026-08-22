@@ -1,6 +1,7 @@
 <?php
 namespace ArchitectureDiscovery\Infrastructure\Parser;
 
+use PhpParser\Node;
 use PhpParser\Node\Name;
 use PhpParser\Node\Stmt;
 use PhpParser\Parser;
@@ -101,6 +102,7 @@ final class PhpClassExtractor
         $interfaces = [];
         $traits = [];
         $isAbstract = false;
+        $typeDependencies = $this->extractTypeDependencies($node, $namespace, $uses);
 
         if ($node instanceof Stmt\Class_) {
             if ($node->extends) {
@@ -136,7 +138,8 @@ final class PhpClassExtractor
             $interfaces,
             $traits,
             $extends,
-            $isAbstract
+            $isAbstract,
+            $typeDependencies
         );
     }
 
@@ -188,6 +191,34 @@ final class PhpClassExtractor
         }
 
         return $namespace ? $namespace . '\\' . $value : $value;
+    }
+
+    /**
+     * Extract names referenced anywhere in a class body, including type hints
+     * and object/static references.
+     *
+     * @param array<string, string> $uses
+     * @return string[]
+     */
+    private function extractTypeDependencies(Node $node, string $namespace, array $uses): array
+    {
+        $dependencies = [];
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            $subNode = $node->$subNodeName;
+            $subNodes = is_array($subNode) ? $subNode : [$subNode];
+            foreach ($subNodes as $child) {
+                if ($child instanceof Name) {
+                    $dependencies[] = $this->resolveName($child, $namespace, $uses);
+                } elseif ($child instanceof Node) {
+                    $dependencies = array_merge(
+                        $dependencies,
+                        $this->extractTypeDependencies($child, $namespace, $uses)
+                    );
+                }
+            }
+        }
+
+        return array_values(array_unique($dependencies));
     }
 
     private function getRelativeFilePath(string $filePath): string

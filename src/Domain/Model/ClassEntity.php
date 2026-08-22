@@ -22,6 +22,8 @@ final class ClassEntity
     private array $traits = [];
     private ?string $extends = null;
     private bool $isAbstract;
+    /** @var string[] */
+    private array $typeDependencies = [];
 
     /**
      * @param string[] $interfaces Fully qualified names of implemented interfaces
@@ -37,7 +39,8 @@ final class ClassEntity
         array $interfaces = [],
         array $traits = [],
         ?string $extends = null,
-        bool $isAbstract = false
+        bool $isAbstract = false,
+        array $typeDependencies = []
     ) {
         $this->fullyQualifiedName = $fullyQualifiedName;
         $this->type = $type;
@@ -49,6 +52,7 @@ final class ClassEntity
         $this->traits = $traits;
         $this->extends = $extends;
         $this->isAbstract = $isAbstract;
+        $this->typeDependencies = array_values(array_unique($typeDependencies));
     }
 
     public function getFullyQualifiedName(): string
@@ -108,6 +112,14 @@ final class ClassEntity
     }
 
     /**
+     * @return string[]
+     */
+    public function getTypeDependencies(): array
+    {
+        return $this->typeDependencies;
+    }
+
+    /**
      * @return array<string, mixed>
      */
     public function toArray(): array
@@ -132,6 +144,10 @@ final class ClassEntity
 
         if ($this->extends !== null) {
             $data['extends'] = $this->extends;
+        }
+
+        if (!empty($this->typeDependencies)) {
+            $data['typeDependencies'] = $this->typeDependencies;
         }
 
         return $data;

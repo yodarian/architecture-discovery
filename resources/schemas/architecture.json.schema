@@ -107,6 +107,13 @@
             "items": {
               "type": "string"
             }
+          },
+          "typeDependencies": {
+            "type": "array",
+            "description": "Fully qualified names referenced by type hints or object/static expressions in the class.",
+            "items": {
+              "type": "string"
+            }
           }
         }
       }
