@@ -16,5 +16,5 @@ return array(
     'Psr\\Container\\' => array($vendorDir . '/psr/container/src'),
     'PhpParser\\' => array($vendorDir . '/nikic/php-parser/lib/PhpParser'),
     'DeepCopy\\' => array($vendorDir . '/myclabs/deep-copy/src/DeepCopy'),
-    'ArchitectureDiscovery\\\\' => array($baseDir . '/src'),
+    'ArchitectureDiscovery\\' => array($baseDir . '/src'),
 );

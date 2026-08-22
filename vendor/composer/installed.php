@@ -3,7 +3,7 @@
         'name' => 'architecture-discovery/tool',
         'pretty_version' => 'dev-master',
         'version' => 'dev-master',
-        'reference' => '0159b0211fd0d56893f3434f7a36984ab409f8c8',
+        'reference' => '38153f0b155294320c760f4aebb6ab100636bcc0',
         'type' => 'project',
         'install_path' => __DIR__ . '/../../',
         'aliases' => array(),
@@ -13,7 +13,7 @@
         'architecture-discovery/tool' => array(
             'pretty_version' => 'dev-master',
             'version' => 'dev-master',
-            'reference' => '0159b0211fd0d56893f3434f7a36984ab409f8c8',
+            'reference' => '38153f0b155294320c760f4aebb6ab100636bcc0',
             'type' => 'project',
             'install_path' => __DIR__ . '/../../',
             'aliases' => array(),

@@ -12,14 +12,19 @@ if (is_file($autoload)) {
     require $autoload;
     // Try to find and run Symfony Console app if defined in application bootstrap
     if (class_exists('Symfony\\Component\\Console\\Application')) {
-        $app = new \Symfony\Component\Console\Application();
-        // register our command if present
-        $cmdClass = 'ArchitectureDiscovery\\Application\\Command\\BootstrapContextCommand';
-        if (class_exists($cmdClass)) {
-            $app->add(new $cmdClass());
-            $app->run();
-            exit(0);
+        $app = new \Symfony\Component\Console\Application('Architecture Discovery', '1.0.0');
+        // register our commands if present
+        $commands = [
+            'ArchitectureDiscovery\\Application\\Command\\BootstrapContextCommand',
+            'ArchitectureDiscovery\\Application\\Command\\AnalyseCommand',
+        ];
+        foreach ($commands as $cmdClass) {
+            if (class_exists($cmdClass)) {
+                $app->add(new $cmdClass());
+            }
         }
+        $app->run();
+        exit(0);
     }
 }
 

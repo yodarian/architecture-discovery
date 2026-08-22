@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "Architecture Discovery - Architecture Model Schema",
+  "description": "The canonical machine-readable format for project architecture analysis. This schema defines the structure of architecture.json produced by the Architecture Discovery CLI tool.",
+  "type": "object",
+  "required": ["version", "generatedAt", "project", "classes", "dependencies"],
+  "properties": {
+    "version": {
+      "type": "string",
+      "description": "Semantic version of the architecture model format. Used for backward compatibility and schema evolution."
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp when the analysis was performed."
+    },
+    "project": {
+      "type": "object",
+      "description": "Metadata about the analyzed project.",
+      "required": ["name", "path", "version"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "description": "Project name, typically from composer.json or derived from directory name."
+        },
+        "path": {
+          "type": "string",
+          "description": "Absolute path to the analyzed project directory."
+        },
+        "version": {
+          "type": "string",
+          "description": "Project version, typically from composer.json."
+        },
+        "composer": {
+          "type": ["object", "null"],
+          "description": "Relevant subset of composer.json data (optional, null if not available).",
+          "properties": {
+            "name": {
+              "type": "string"
+            },
+            "description": {
+              "type": "string"
+            },
+            "version": {
+              "type": "string"
+            },
+            "require": {
+              "type": "object"
+            },
+            "require-dev": {
+              "type": "object"
+            }
+          }
+        }
+      }
+    },
+    "classes": {
+      "type": "array",
+      "description": "Array of all discovered PHP classes, interfaces, and traits in the project.",
+      "items": {
+        "type": "object",
+        "required": ["fqn", "type", "namespace", "name", "file", "line"],
+        "properties": {
+          "fqn": {
+            "type": "string",
+            "description": "Fully qualified name (namespace\\ClassName)."
+          },
+          "type": {
+            "type": "string",
+            "enum": ["class", "interface", "trait"],
+            "description": "PHP element type."
+          },
+          "namespace": {
+            "type": "string",
+            "description": "PHP namespace of the class."
+          },
+          "name": {
+            "type": "string",
+            "description": "Short name of the class (without namespace)."
+          },
+          "file": {
+            "type": "string",
+            "description": "Relative path to the source file from project root."
+          },
+          "line": {
+            "type": "integer",
+            "description": "Line number where the class is defined."
+          },
+          "abstract": {
+            "type": "boolean",
+            "description": "True if the class is declared abstract."
+          },
+          "extends": {
+            "type": ["string", "null"],
+            "description": "Fully qualified name of the extended class, if any."
+          },
+          "implements": {
+            "type": "array",
+            "description": "Array of fully qualified names of implemented interfaces.",
+            "items": {
+              "type": "string"
+            }
+          },
+          "uses": {
+            "type": "array",
+            "description": "Array of fully qualified names of used traits.",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "dependencies": {
+      "type": "array",
+      "description": "Array of all discovered dependencies (edges) between classes.",
+      "items": {
+        "type": "object",
+        "required": ["from", "to", "type", "weight"],
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "Fully qualified name of the source class."
+          },
+          "to": {
+            "type": "string",
+            "description": "Fully qualified name of the target class."
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "uses",
+              "implements",
+              "extends",
+              "trait_use",
+              "method_call",
+              "property_type",
+              "return_type",
+              "parameter_type",
+              "orm_relation",
+              "dynamic_call"
+            ],
+            "description": "Type of dependency relationship."
+          },
+          "weight": {
+            "type": "integer",
+            "description": "Weight of the dependency (1-N). Higher weights indicate stronger coupling."
+          },
+          "metadata": {
+            "type": "object",
+            "description": "Optional additional information about the dependency (e.g., method name, ORM relation type)."
+          }
+        }
+      }
+    }
+  }
+}

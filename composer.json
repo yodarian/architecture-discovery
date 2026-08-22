@@ -11,7 +11,7 @@
   },
   "autoload": {
     "psr-4": {
-      "ArchitectureDiscovery\\\\": "src/"
+      "ArchitectureDiscovery\\": "src/"
     }
   },
   "bin": ["bin/bootstrap-context"]
