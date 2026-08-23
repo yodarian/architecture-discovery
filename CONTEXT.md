@@ -9,6 +9,7 @@ This file captures the working glossary and core decisions for the Architecture 
 - **Module**: An explicitly defined architectural code boundary created and maintained by the Developer.
 - **Bounded Context Candidate**: A hypothesis that one or more Modules represent a distinct DDD bounded context, suggested by LLM + analysis.
 - **Bounded Context**: A confirmed DDD boundary with an explicit domain meaning and model boundary, agreed and produced by Developer/domain experts.
+- **Architecture Map**: A generated Markdown summary (`architecture-map.md`) of the architecture model at cluster granularity — member class counts, internal/external dependency counts, and framework-tagged relation counts — produced so an agent or human can orient in an unfamiliar codebase without reading `architecture.json` or the source in full. It contains no per-class detail and no ubiquitous-language content; that stays the responsibility of a project's own `CONTEXT.md`.
 
 ## Key Domain Concepts (examples used in discussions)
 
@@ -23,6 +24,8 @@ This file captures the working glossary and core decisions for the Architecture 
 - Classes named `*Service` are treated as potentially domain services or helpers; the Analyzer preserves the name and context for human review.
 - Clustering granularity: feature/module level (cluster contains classes belonging to a feature/module).
 - Clusters are technical groupings; they may become Module Candidates after analysis and human review.
+- The tool never writes into the analyzed project. `analyse` defaults to writing all artifacts (`architecture.json`, `graph.svg`, `report.html`, `architecture-map.md`) to `out/<project-name>/` inside this tool's own repo; `--output` may override the location but the analyzed project itself is never a valid implicit target.
+- Authoring a `CONTEXT.md` glossary for an analyzed project is a manual or Agent-Skill task, not something this tool generates. The tool used to template a `CONTEXT.md` into analyzed projects (`app:bootstrap-context`); that conflated glossary authoring with static analysis and was removed.
 
 ## Ownership Example (illustrative)
 
@@ -47,7 +50,6 @@ Given an `Order` that references `Customer`:
 
 ## Next Steps
 
-- Use this glossary to seed `CONTEXT.md` inside analyzed projects when a project-specific glossary is first created.
 - The Analyzer will tag infra nodes and dynamic edges according to the policies above.
 
 ---
