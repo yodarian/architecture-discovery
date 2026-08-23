@@ -2,32 +2,27 @@
 namespace ArchitectureDiscovery\Reporting;
 
 use ArchitectureDiscovery\Domain\Model\Architecture;
+use ArchitectureDiscovery\Reporting\View\ArchitectureView;
+use ArchitectureDiscovery\Reporting\View\ArchitectureViewBuilder;
 
 /**
  * Renders the canonical architecture graph as Graphviz DOT or SVG.
  */
 final class GraphvizRenderer
 {
+    public function __construct(private ArchitectureViewBuilder $viewBuilder = new ArchitectureViewBuilder())
+    {
+    }
+
     public function renderDot(Architecture $architecture): string
     {
-        $lines = ['digraph architecture {', '  rankdir=LR;'];
-        foreach ($architecture->getClasses() as $class) {
-            $name = $class->getFullyQualifiedName();
-            $lines[] = '  ' . $this->quote($name) . ' [label=' . $this->quote($class->getName()) . '];';
-        }
-        foreach ($architecture->getDependencies() as $dependency) {
-            $lines[] = '  ' . $this->quote($dependency->getFrom()->getFullyQualifiedName())
-                . ' -> ' . $this->quote($dependency->getTo()->getFullyQualifiedName())
-                . ' [label=' . $this->quote($dependency->getType())
-                . ', weight=' . $dependency->getWeight() . '];';
-        }
-        $lines[] = '}';
-        return implode("\n", $lines) . "\n";
+        return $this->renderDotFromView($this->viewBuilder->build($architecture));
     }
 
     public function renderSvg(Architecture $architecture): string
     {
-        $dot = $this->renderDot($architecture);
+        $view = $this->viewBuilder->build($architecture);
+        $dot = $this->renderDotFromView($view);
         $process = proc_open(
             ['dot', '-Tsvg'],
             [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
@@ -45,7 +40,23 @@ final class GraphvizRenderer
             }
         }
 
-        return $this->fallbackSvg($architecture);
+        return $this->fallbackSvg($view);
+    }
+
+    private function renderDotFromView(ArchitectureView $view): string
+    {
+        $lines = ['digraph architecture {', '  rankdir=LR;'];
+        foreach ($view->getClasses() as $class) {
+            $lines[] = '  ' . $this->quote($class['fqn']) . ' [label=' . $this->quote($class['name']) . '];';
+        }
+        foreach ($view->getDependencies() as $dependency) {
+            $lines[] = '  ' . $this->quote($dependency['from'])
+                . ' -> ' . $this->quote($dependency['to'])
+                . ' [label=' . $this->quote($dependency['type'])
+                . ', weight=' . $dependency['weight'] . '];';
+        }
+        $lines[] = '}';
+        return implode("\n", $lines) . "\n";
     }
 
     private function quote(string $value): string
@@ -53,12 +64,13 @@ final class GraphvizRenderer
         return '"' . addcslashes($value, "\\\"") . '"';
     }
 
-    private function fallbackSvg(Architecture $architecture): string
+    private function fallbackSvg(ArchitectureView $view): string
     {
-        $height = max(80, count($architecture->getClasses()) * 28 + 30);
+        $classes = $view->getClasses();
+        $height = max(80, count($classes) * 28 + 30);
         $labels = [];
-        foreach ($architecture->getClasses() as $index => $class) {
-            $labels[] = '<text x="12" y="' . (28 + $index * 28) . '">' . htmlspecialchars($class->getFullyQualifiedName(), ENT_XML1) . '</text>';
+        foreach ($classes as $index => $class) {
+            $labels[] = '<text x="12" y="' . (28 + $index * 28) . '">' . htmlspecialchars($class['fqn'], ENT_XML1) . '</text>';
         }
         return '<svg xmlns="http://www.w3.org/2000/svg" width="900" height="' . $height . '" role="img" aria-label="Architecture graph">'
             . '<style>text { font: 14px sans-serif; }</style>' . implode('', $labels) . '</svg>';

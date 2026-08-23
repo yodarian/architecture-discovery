@@ -2,18 +2,23 @@
 namespace ArchitectureDiscovery\Reporting;
 
 use ArchitectureDiscovery\Domain\Model\Architecture;
+use ArchitectureDiscovery\Reporting\View\ArchitectureViewBuilder;
 
 /**
  * Generates a static HTML report from the architecture model and derived results.
  */
 final class HtmlReportGenerator
 {
+    public function __construct(private ArchitectureViewBuilder $viewBuilder = new ArchitectureViewBuilder())
+    {
+    }
+
     public function render(Architecture $architecture): string
     {
-        $data = $architecture->toArray();
-        $project = $data['project'];
-        $metrics = $data['metrics'];
-        $clusters = $data['clusters'];
+        $view = $this->viewBuilder->build($architecture);
+        $project = $view->getProject();
+        $metrics = $view->getMetrics();
+        $clusters = $view->getClusters();
         $escape = static fn(string $value): string => htmlspecialchars($value, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 
         $html = '<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Architecture report</title>'
