@@ -4,7 +4,13 @@
 
 **Blocked by:** None — can start immediately (builds on the existing `ArchitectureMapRenderer` from ticket 03)
 
-- [ ] Acceptance criterion: each cluster's rendered entry includes a label derived from the longest common namespace prefix shared by its member classes (still using only data already on the `Architecture`/`ClassEntity` model, no new analysis pass), alongside its `cluster-N` id
-- [ ] Acceptance criterion: the "Incoming dependencies (from other clusters)" and "Outgoing dependencies (to other clusters)" lines are removed from the rendered output, since `ConnectedComponentsClusterer` clusters are connected components and cross-cluster edges are structurally impossible — these fields are always zero and add no signal
-- [ ] Acceptance criterion: a cluster with exactly one member class and zero internal dependencies is flagged as isolated in its rendered entry, distinguishing it from a real multi-class boundary
-- [ ] Acceptance criterion: `tests/Unit/Reporting/ArchitectureMapRendererTest.php` is extended to cover label derivation (including a cluster with no common namespace prefix beyond the root), the removal of the incoming/outgoing lines, and isolated-cluster flagging
+**Status:** done
+
+- [x] Acceptance criterion: each cluster's rendered entry includes a label derived from the longest common namespace prefix shared by its member classes (still using only data already on the `Architecture`/`ClassEntity` model, no new analysis pass), alongside its `cluster-N` id
+- [x] Acceptance criterion: the "Incoming dependencies (from other clusters)" and "Outgoing dependencies (to other clusters)" lines are removed from the rendered output, since `ConnectedComponentsClusterer` clusters are connected components and cross-cluster edges are structurally impossible — these fields are always zero and add no signal
+- [x] Acceptance criterion: a cluster with exactly one member class and zero internal dependencies is flagged as isolated in its rendered entry, distinguishing it from a real multi-class boundary
+- [x] Acceptance criterion: `tests/Unit/Reporting/ArchitectureMapRendererTest.php` is extended to cover label derivation (including a cluster with no common namespace prefix beyond the root), the removal of the incoming/outgoing lines, and isolated-cluster flagging
+
+## Comments
+
+Implemented in commit `3c226af`.
