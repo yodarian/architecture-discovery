@@ -9,10 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use ArchitectureDiscovery\Domain\Model\Architecture;
 use ArchitectureDiscovery\Domain\Model\ProjectMetadata;
-use ArchitectureDiscovery\Domain\Model\Dependency;
-use ArchitectureDiscovery\Infrastructure\Scanner\FileScanner;
-use ArchitectureDiscovery\Infrastructure\Parser\PhpClassExtractor;
-use ArchitectureDiscovery\Infrastructure\Analyzer\CakePhpAnalyzer;
+use ArchitectureDiscovery\Analysis\ProjectAnalyzer;
 use ArchitectureDiscovery\Analysis\ArchitectureMetricsCalculator;
 use ArchitectureDiscovery\Clustering\ConnectedComponentsClusterer;
 use ArchitectureDiscovery\Reporting\GraphvizRenderer;
@@ -207,157 +204,16 @@ final class AnalyseCommand extends Command
         array $excludeDirs,
         OutputInterface $output
     ): void {
-        if ($output->isVerbose()) {
-            $output->writeln("<comment>Scanning for PHP files...</comment>");
-        }
-
-        $scanner = new FileScanner($excludeDirs);
-        $files = $scanner->scanDirectory($projectPath);
-
-        if ($output->isVerbose()) {
-            $output->writeln("  Found " . count($files) . " PHP files");
-        }
-
-        if ($output->isVerbose()) {
-            $output->writeln("<comment>Extracting classes from files...</comment>");
-        }
-
-        $extractor = new PhpClassExtractor($projectPath);
-        $cakePhpAnalyzer = new CakePhpAnalyzer();
-        $cakeRelationships = [];
-        $classCount = 0;
-
-        foreach ($files as $file) {
-            try {
-                $classes = $extractor->extractFromFile($file->getRealPath());
-                foreach ($classes as $class) {
-                    $architecture->addClass($class);
-                    $classCount++;
-                }
-                $cakeRelationships = array_merge(
-                    $cakeRelationships,
-                    $cakePhpAnalyzer->analyzeFile($file->getRealPath())
-                );
-            } catch (\Exception $e) {
+        (new ProjectAnalyzer())->analyze(
+            $architecture,
+            $projectPath,
+            $excludeDirs,
+            static function (string $message) use ($output): void {
                 if ($output->isVerbose()) {
-                    $output->writeln("<comment>  Warning: Failed to parse {$file->getFilename()}: {$e->getMessage()}</comment>");
+                    $output->writeln("<comment>{$message}</comment>");
                 }
             }
-        }
-
-        $this->addStructuralDependencies($architecture);
-        $this->addCakePhpDependencies($architecture, $cakeRelationships);
-
-        if ($output->isVerbose()) {
-            $output->writeln("  Extracted {$classCount} classes, interfaces, and traits");
-        }
-    }
-
-    private function addStructuralDependencies(Architecture $architecture): void
-    {
-        foreach ($architecture->getClasses() as $class) {
-            if ($class->getExtends() !== null) {
-                $target = $architecture->getClass($class->getExtends());
-                if ($target !== null) {
-                    $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_EXTENDS, 3));
-                }
-            }
-
-            foreach ($class->getInterfaces() as $interfaceName) {
-                $target = $architecture->getClass($interfaceName);
-                if ($target !== null) {
-                    $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_IMPLEMENTS, 2));
-                }
-            }
-
-            foreach ($class->getTraits() as $traitName) {
-                $target = $architecture->getClass($traitName);
-                if ($target !== null) {
-                    $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_TRAIT_USE, 2));
-                }
-            }
-
-            $structuralDependencies = array_merge(
-                $class->getInterfaces(),
-                $class->getTraits(),
-                $class->getExtends() !== null ? [$class->getExtends()] : []
-            );
-            foreach ($class->getTypeDependencies() as $typeName) {
-                if (in_array($typeName, $structuralDependencies, true)) {
-                    continue;
-                }
-
-                $target = $architecture->getClass($typeName);
-                if ($target !== null && $target !== $class) {
-                    $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_USES, 1));
-                }
-            }
-        }
-    }
-
-    /**
-     * Add CakePHP relationships when their target resolves to a discovered class.
-     * Unresolved dynamic calls are intentionally omitted from graph edges but are
-     * still detected by CakePhpAnalyzer for future reporting.
-     *
-     * @param array<int, array{from: string, target: string|null, type: string, weight: int, metadata: array<string, mixed>}> $relationships
-     */
-    private function addCakePhpDependencies(Architecture $architecture, array $relationships): void
-    {
-        foreach ($relationships as $relationship) {
-            if ($relationship['target'] === null) {
-                continue;
-            }
-
-            $from = $architecture->getClass($relationship['from']);
-            $to = $this->resolveCakePhpTarget($architecture, $relationship['from'], $relationship['target']);
-            if ($from === null || $to === null || $from === $to) {
-                continue;
-            }
-
-            $metadata = $relationship['metadata'];
-            $metadata['target'] = $relationship['target'];
-            $architecture->addDependency(new Dependency(
-                $from,
-                $to,
-                $relationship['type'],
-                $relationship['weight'],
-                $metadata
-            ));
-        }
-    }
-
-    private function resolveCakePhpTarget(Architecture $architecture, string $from, string $targetName): ?\ArchitectureDiscovery\Domain\Model\ClassEntity
-    {
-        $source = $architecture->getClass($from);
-        if ($source === null) {
-            return null;
-        }
-
-        $targetName = ltrim($targetName, '\\');
-        $candidates = str_contains($targetName, '\\')
-            ? [$targetName]
-            : array_filter([
-                $source->getNamespace() . '\\' . $targetName . 'Table',
-                $source->getNamespace() . '\\' . $targetName,
-                $targetName . 'Table',
-                $targetName,
-            ]);
-
-        foreach ($candidates as $candidate) {
-            $resolved = $architecture->getClass($candidate);
-            if ($resolved !== null) {
-                return $resolved;
-            }
-        }
-
-        foreach ($architecture->getClasses() as $class) {
-            if ($class->getName() === $targetName || $class->getName() === $targetName . 'Table') {
-                return $class;
-            }
-        }
-
-        return null;
+        );
     }
 
     /**
