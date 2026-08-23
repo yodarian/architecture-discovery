@@ -19,6 +19,10 @@ final class ArchitectureMapRenderer
             'Clusters: ' . count($architecture->getClusters()),
             '',
         ];
+        $lines[] = '## Namespace tree';
+        $lines[] = '';
+        $lines = array_merge($lines, $this->renderNamespaceTree($architecture));
+        $lines[] = '';
 
         foreach ($architecture->getClusters() as $cluster) {
             $metrics = $cluster['metrics'] ?? [];
@@ -41,6 +45,55 @@ final class ArchitectureMapRenderer
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @return string[]
+     */
+    private function renderNamespaceTree(Architecture $architecture): array
+    {
+        $tree = [];
+        $globalClassCount = 0;
+
+        foreach ($architecture->getClasses() as $class) {
+            $namespace = $class->getNamespace();
+            if ($namespace === '') {
+                $globalClassCount++;
+                continue;
+            }
+
+            $node =& $tree;
+            foreach (explode('\\', $namespace) as $segment) {
+                if (!isset($node[$segment])) {
+                    $node[$segment] = ['count' => 0, 'children' => []];
+                }
+                $node[$segment]['count']++;
+                $node =& $node[$segment]['children'];
+            }
+            unset($node);
+        }
+
+        return $this->renderNamespaceNodes($tree, $globalClassCount);
+    }
+
+    /**
+     * @param array<string, array{count: int, children: array}> $nodes
+     * @return string[]
+     */
+    private function renderNamespaceNodes(array $nodes, int $globalClassCount = 0, int $depth = 0): array
+    {
+        $lines = [];
+        if ($globalClassCount > 0) {
+            $lines[] = str_repeat('  ', $depth) . '- (global): ' . $globalClassCount;
+        }
+
+        ksort($nodes);
+        foreach ($nodes as $namespace => $node) {
+            $lines[] = str_repeat('  ', $depth) . '- ' . $namespace . ': ' . $node['count'];
+            $lines = array_merge($lines, $this->renderNamespaceNodes($node['children'], 0, $depth + 1));
+        }
+
+        return $lines;
     }
 
     /**

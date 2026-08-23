@@ -93,6 +93,7 @@ final class ArchitectureMapRendererTest extends TestCase
 
         $expected = str_replace("\n        - Top classes:", "\n- Top classes:", $expected);
         $expected = str_replace("\n            - ", "\n  - ", $expected);
+        $expected = str_replace("Clusters: 3\n\n", "Clusters: 3\n\n## Namespace tree\n\n- App: 4\n  - Controller: 1\n  - Model: 3\n    - Entity: 1\n    - Table: 2\n- Vendor: 1\n  - Lib: 1\n\n", $expected);
         $this->assertSame($expected, $markdown);
         $this->assertStringNotContainsString('Bounded Context', $markdown);
     }
@@ -150,6 +151,54 @@ final class ArchitectureMapRendererTest extends TestCase
 
         $expected = str_replace("\n        - Top classes:", "\n- Top classes:", $expected);
         $expected = str_replace("\n            - ", "\n  - ", $expected);
+        $expected = str_replace("Clusters: 1\n\n", "Clusters: 1\n\n## Namespace tree\n\n- App: 9\n\n", $expected);
+        $this->assertSame($expected, (new ArchitectureMapRenderer())->render($architecture));
+    }
+
+    public function testRendersGlobalNamespaceTreeBeforeClusters(): void
+    {
+        $architecture = new Architecture(new ProjectMetadata('demo', '/secret/source', '1.2.3', new DateTimeImmutable()));
+        foreach ([
+            new ClassEntity('App\\Controller\\OrdersController', ClassEntity::TYPE_CLASS, 'App\\Controller', 'OrdersController', 'src/Controller/OrdersController.php', 1),
+            new ClassEntity('App\\Model\\Entity\\Order', ClassEntity::TYPE_CLASS, 'App\\Model\\Entity', 'Order', 'src/Model/Entity/Order.php', 1),
+            new ClassEntity('App\\Model\\Table\\OrdersTable', ClassEntity::TYPE_CLASS, 'App\\Model\\Table', 'OrdersTable', 'src/Model/Table/OrdersTable.php', 1),
+            new ClassEntity('GlobalThing', ClassEntity::TYPE_CLASS, '', 'GlobalThing', 'src/GlobalThing.php', 1),
+        ] as $class) {
+            $architecture->addClass($class);
+        }
+        $architecture->setClusters([[
+            'id' => 'cluster-1',
+            'classes' => ['App\\Controller\\OrdersController'],
+            'metrics' => ['classCount' => 1, 'internalEdges' => 0],
+        ]]);
+
+        $expected = <<<'MARKDOWN'
+# Architecture Map
+
+Project: demo
+Clusters: 1
+
+## Namespace tree
+
+- (global): 1
+- App: 3
+  - Controller: 1
+  - Model: 2
+    - Entity: 1
+    - Table: 1
+-
+- cluster-1 — App\Controller
+
+- Classes: 1
+- Internal dependencies: 0
+- Isolated: yes
+- Framework-tagged relations: 0
+- Top classes:
+  - App\Controller\OrdersController
+
+MARKDOWN;
+
+    $expected = str_replace("\n-\n- cluster-1", "\n\n## cluster-1", $expected);
         $this->assertSame($expected, (new ArchitectureMapRenderer())->render($architecture));
     }
 }
