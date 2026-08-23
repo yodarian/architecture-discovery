@@ -184,6 +184,48 @@ PHP
         $this->assertContains('App\Repository\OrderRepository', $dependencies);
     }
 
+    public function testClassifiesPropertyParameterReturnAndStaticCallDependencies(): void
+    {
+        $phpFile = $this->tempDir . '/OrderService.php';
+        file_put_contents($phpFile, <<<'PHP'
+<?php
+namespace App\Service;
+
+use App\Model\Order;
+use App\Model\OrderId;
+use App\Repository\OrderRepository;
+use App\Support\Clock;
+
+class OrderService
+{
+    private OrderRepository $repository;
+
+    public function __construct(private Clock $clock)
+    {
+    }
+
+    public function find(OrderId $id): Order
+    {
+        OrderRepository::assertValid($id);
+        return new Order();
+    }
+}
+PHP
+        );
+
+        $extractor = new PhpClassExtractor($this->tempDir);
+        $classes = $extractor->extractFromFile($phpFile);
+        $class = $classes[0];
+
+        $this->assertSame(['App\Repository\OrderRepository', 'App\Support\Clock'], $class->getPropertyTypeDependencies());
+        $this->assertSame(['App\Model\OrderId'], $class->getParameterTypeDependencies());
+        $this->assertSame(['App\Model\Order'], $class->getReturnTypeDependencies());
+        $this->assertSame(['App\Repository\OrderRepository'], $class->getStaticCallDependencies());
+        // The bare `new Order()` instantiation isn't a declared type hint or static call,
+        // so it stays in the broad, unclassified typeDependencies bucket.
+        $this->assertContains('App\Model\Order', $class->getTypeDependencies());
+    }
+
     public function testExtractAbstractClass(): void
     {
         $phpFile = $this->tempDir . '/AbstractService.php';

@@ -35,6 +35,77 @@ final class ProjectAnalyzerTest extends TestCase
         return new Architecture(new ProjectMetadata('demo', $this->tempDir, '1.0.0', new DateTimeImmutable()));
     }
 
+    public function testBindsClassifiedTypeHintAndStaticCallDependencies(): void
+    {
+        file_put_contents($this->tempDir . '/Order.php', <<<'PHP'
+<?php
+class Order {}
+PHP
+        );
+        file_put_contents($this->tempDir . '/OrderId.php', <<<'PHP'
+<?php
+class OrderId {}
+PHP
+        );
+        file_put_contents($this->tempDir . '/OrderRepository.php', <<<'PHP'
+<?php
+class OrderRepository
+{
+    public static function assertValid(OrderId $id): void
+    {
+    }
+}
+PHP
+        );
+        file_put_contents($this->tempDir . '/Logger.php', <<<'PHP'
+<?php
+class Logger {}
+PHP
+        );
+        file_put_contents($this->tempDir . '/OrderService.php', <<<'PHP'
+<?php
+class OrderService
+{
+    private OrderRepository $repository;
+
+    public function find(OrderId $id): Order
+    {
+        OrderRepository::assertValid($id);
+        new Logger();
+        return new Order();
+    }
+}
+PHP
+        );
+
+        $architecture = $this->newArchitecture();
+        (new ProjectAnalyzer())->analyze($architecture, $this->tempDir);
+
+        $dependenciesByType = [];
+        foreach ($architecture->getDependencies() as $dependency) {
+            $dependenciesByType[$dependency->getType()][] = $dependency;
+        }
+
+        $this->assertSame('OrderRepository', $dependenciesByType[Dependency::TYPE_PROPERTY_TYPE][0]->getTo()->getName());
+        $this->assertSame('OrderId', $dependenciesByType[Dependency::TYPE_PARAMETER_TYPE][0]->getTo()->getName());
+        $returnTypeTargets = array_map(
+            static fn(Dependency $d) => $d->getTo()->getName(),
+            $dependenciesByType[Dependency::TYPE_RETURN_TYPE]
+        );
+        $this->assertContains('Order', $returnTypeTargets);
+        $this->assertSame('OrderRepository', $dependenciesByType[Dependency::TYPE_METHOD_CALL][0]->getTo()->getName());
+
+        // `new Logger()` isn't a declared type hint or static call, so it's still generic TYPE_USES.
+        // `Order` is fully explained by TYPE_RETURN_TYPE above, so it's excluded from TYPE_USES
+        // even though it's also `new`-ed in the same method body.
+        $usesTargets = array_map(
+            static fn(Dependency $d) => $d->getTo()->getName(),
+            $dependenciesByType[Dependency::TYPE_USES]
+        );
+        $this->assertContains('Logger', $usesTargets);
+        $this->assertNotContains('Order', $usesTargets);
+    }
+
     public function testBindsExtendsDependencyBetweenExtractedClasses(): void
     {
         file_put_contents($this->tempDir . '/Base.php', <<<'PHP'

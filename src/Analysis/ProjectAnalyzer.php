@@ -87,10 +87,43 @@ final class ProjectAnalyzer
                 }
             }
 
+            $this->addClassifiedTypeDependencies(
+                $architecture,
+                $class,
+                $class->getPropertyTypeDependencies(),
+                Dependency::TYPE_PROPERTY_TYPE,
+                2
+            );
+            $this->addClassifiedTypeDependencies(
+                $architecture,
+                $class,
+                $class->getParameterTypeDependencies(),
+                Dependency::TYPE_PARAMETER_TYPE,
+                1
+            );
+            $this->addClassifiedTypeDependencies(
+                $architecture,
+                $class,
+                $class->getReturnTypeDependencies(),
+                Dependency::TYPE_RETURN_TYPE,
+                1
+            );
+            $this->addClassifiedTypeDependencies(
+                $architecture,
+                $class,
+                $class->getStaticCallDependencies(),
+                Dependency::TYPE_METHOD_CALL,
+                1
+            );
+
             $structuralDependencies = array_merge(
                 $class->getInterfaces(),
                 $class->getTraits(),
-                $class->getExtends() !== null ? [$class->getExtends()] : []
+                $class->getExtends() !== null ? [$class->getExtends()] : [],
+                $class->getPropertyTypeDependencies(),
+                $class->getParameterTypeDependencies(),
+                $class->getReturnTypeDependencies(),
+                $class->getStaticCallDependencies()
             );
             foreach ($class->getTypeDependencies() as $typeName) {
                 if (in_array($typeName, $structuralDependencies, true)) {
@@ -101,6 +134,24 @@ final class ProjectAnalyzer
                 if ($target !== null && $target !== $class) {
                     $architecture->addDependency(new Dependency($class, $target, Dependency::TYPE_USES, 1));
                 }
+            }
+        }
+    }
+
+    /**
+     * @param string[] $typeNames
+     */
+    private function addClassifiedTypeDependencies(
+        Architecture $architecture,
+        ClassEntity $class,
+        array $typeNames,
+        string $type,
+        int $weight
+    ): void {
+        foreach ($typeNames as $typeName) {
+            $target = $architecture->getClass($typeName);
+            if ($target !== null && $target !== $class) {
+                $architecture->addDependency(new Dependency($class, $target, $type, $weight));
             }
         }
     }

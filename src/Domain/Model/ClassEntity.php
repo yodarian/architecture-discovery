@@ -24,10 +24,23 @@ final class ClassEntity
     private bool $isAbstract;
     /** @var string[] */
     private array $typeDependencies = [];
+    /** @var string[] */
+    private array $propertyTypeDependencies = [];
+    /** @var string[] */
+    private array $parameterTypeDependencies = [];
+    /** @var string[] */
+    private array $returnTypeDependencies = [];
+    /** @var string[] */
+    private array $staticCallDependencies = [];
 
     /**
      * @param string[] $interfaces Fully qualified names of implemented interfaces
      * @param string[] $traits Fully qualified names of used traits
+     * @param string[] $typeDependencies Every type name referenced anywhere in the class body
+     * @param string[] $propertyTypeDependencies Property type hints, including promoted constructor params
+     * @param string[] $parameterTypeDependencies Non-promoted method parameter type hints
+     * @param string[] $returnTypeDependencies Method return type hints
+     * @param string[] $staticCallDependencies Classes referenced via a static method call (Foo::bar())
      */
     public function __construct(
         string $fullyQualifiedName,
@@ -40,7 +53,11 @@ final class ClassEntity
         array $traits = [],
         ?string $extends = null,
         bool $isAbstract = false,
-        array $typeDependencies = []
+        array $typeDependencies = [],
+        array $propertyTypeDependencies = [],
+        array $parameterTypeDependencies = [],
+        array $returnTypeDependencies = [],
+        array $staticCallDependencies = []
     ) {
         $this->fullyQualifiedName = $fullyQualifiedName;
         $this->type = $type;
@@ -53,6 +70,10 @@ final class ClassEntity
         $this->extends = $extends;
         $this->isAbstract = $isAbstract;
         $this->typeDependencies = array_values(array_unique($typeDependencies));
+        $this->propertyTypeDependencies = array_values(array_unique($propertyTypeDependencies));
+        $this->parameterTypeDependencies = array_values(array_unique($parameterTypeDependencies));
+        $this->returnTypeDependencies = array_values(array_unique($returnTypeDependencies));
+        $this->staticCallDependencies = array_values(array_unique($staticCallDependencies));
     }
 
     public function getFullyQualifiedName(): string
@@ -117,6 +138,38 @@ final class ClassEntity
     public function getTypeDependencies(): array
     {
         return $this->typeDependencies;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getPropertyTypeDependencies(): array
+    {
+        return $this->propertyTypeDependencies;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getParameterTypeDependencies(): array
+    {
+        return $this->parameterTypeDependencies;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getReturnTypeDependencies(): array
+    {
+        return $this->returnTypeDependencies;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getStaticCallDependencies(): array
+    {
+        return $this->staticCallDependencies;
     }
 
     /**

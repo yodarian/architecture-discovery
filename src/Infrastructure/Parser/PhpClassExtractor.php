@@ -2,7 +2,9 @@
 namespace ArchitectureDiscovery\Infrastructure\Parser;
 
 use PhpParser\Node;
+use PhpParser\Node\Expr;
 use PhpParser\Node\Name;
+use PhpParser\Node\Param;
 use PhpParser\Node\Stmt;
 use PhpParser\Parser;
 use PhpParser\ParserFactory;
@@ -103,6 +105,50 @@ final class PhpClassExtractor
         $traits = [];
         $isAbstract = false;
         $typeDependencies = $this->extractTypeDependencies($node, $namespace, $uses);
+        $propertyTypeDependencies = [];
+        $parameterTypeDependencies = [];
+        $returnTypeDependencies = [];
+        $staticCallDependencies = [];
+
+        foreach ($node->stmts as $stmt) {
+            if ($stmt instanceof Stmt\Property && $stmt->type !== null) {
+                $propertyTypeDependencies = array_merge(
+                    $propertyTypeDependencies,
+                    $this->extractNamesFromNode($stmt->type, $namespace, $uses)
+                );
+            }
+
+            if ($stmt instanceof Stmt\ClassMethod) {
+                if ($stmt->returnType !== null) {
+                    $returnTypeDependencies = array_merge(
+                        $returnTypeDependencies,
+                        $this->extractNamesFromNode($stmt->returnType, $namespace, $uses)
+                    );
+                }
+
+                foreach ($stmt->params as $param) {
+                    if ($param->type === null) {
+                        continue;
+                    }
+
+                    $names = $this->extractNamesFromNode($param->type, $namespace, $uses);
+                    if ($this->isPromotedProperty($param)) {
+                        $propertyTypeDependencies = array_merge($propertyTypeDependencies, $names);
+                    } else {
+                        $parameterTypeDependencies = array_merge($parameterTypeDependencies, $names);
+                    }
+                }
+
+                if ($stmt->stmts !== null) {
+                    foreach ($stmt->stmts as $bodyStmt) {
+                        $staticCallDependencies = array_merge(
+                            $staticCallDependencies,
+                            $this->extractStaticCallDependencies($bodyStmt, $namespace, $uses)
+                        );
+                    }
+                }
+            }
+        }
 
         if ($node instanceof Stmt\Class_) {
             if ($node->extends) {
@@ -139,8 +185,17 @@ final class PhpClassExtractor
             $traits,
             $extends,
             $isAbstract,
-            $typeDependencies
+            $typeDependencies,
+            $propertyTypeDependencies,
+            $parameterTypeDependencies,
+            $returnTypeDependencies,
+            $staticCallDependencies
         );
+    }
+
+    private function isPromotedProperty(Param $param): bool
+    {
+        return $param->flags !== 0;
     }
 
     private function nameToString(?Name $name): string
@@ -213,6 +268,50 @@ final class PhpClassExtractor
                     $dependencies = array_merge(
                         $dependencies,
                         $this->extractTypeDependencies($child, $namespace, $uses)
+                    );
+                }
+            }
+        }
+
+        return array_values(array_unique($dependencies));
+    }
+
+    /**
+     * Extract names from a single type node (Name, NullableType, UnionType, IntersectionType, ...).
+     *
+     * @param array<string, string> $uses
+     * @return string[]
+     */
+    private function extractNamesFromNode(Node $node, string $namespace, array $uses): array
+    {
+        if ($node instanceof Name) {
+            return [$this->resolveName($node, $namespace, $uses)];
+        }
+
+        return $this->extractTypeDependencies($node, $namespace, $uses);
+    }
+
+    /**
+     * Extract classes referenced via a static method call (Foo::bar()).
+     *
+     * @param array<string, string> $uses
+     * @return string[]
+     */
+    private function extractStaticCallDependencies(Node $node, string $namespace, array $uses): array
+    {
+        $dependencies = [];
+        if ($node instanceof Expr\StaticCall && $node->class instanceof Name) {
+            $dependencies[] = $this->resolveName($node->class, $namespace, $uses);
+        }
+
+        foreach ($node->getSubNodeNames() as $subNodeName) {
+            $subNode = $node->$subNodeName;
+            $subNodes = is_array($subNode) ? $subNode : [$subNode];
+            foreach ($subNodes as $child) {
+                if ($child instanceof Node) {
+                    $dependencies = array_merge(
+                        $dependencies,
+                        $this->extractStaticCallDependencies($child, $namespace, $uses)
                     );
                 }
             }
