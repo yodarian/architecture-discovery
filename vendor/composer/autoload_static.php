@@ -92,7 +92,6 @@ class ComposerStaticInit64c00e1cc004b57c7ecd91c21d8516e6
 
     public static $classMap = array (
         'ArchitectureDiscovery\\Application\\Command\\AnalyseCommand' => __DIR__ . '/../..' . '/src/Application/Command/AnalyseCommand.php',
-        'ArchitectureDiscovery\\Application\\Command\\BootstrapContextCommand' => __DIR__ . '/../..' . '/src/Application/Command/BootstrapContextCommand.php',
         'ArchitectureDiscovery\\Domain\\Model\\Architecture' => __DIR__ . '/../..' . '/src/Domain/Model/Architecture.php',
         'ArchitectureDiscovery\\Domain\\Model\\ClassEntity' => __DIR__ . '/../..' . '/src/Domain/Model/ClassEntity.php',
         'ArchitectureDiscovery\\Domain\\Model\\Dependency' => __DIR__ . '/../..' . '/src/Domain/Model/Dependency.php',

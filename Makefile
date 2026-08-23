@@ -42,4 +42,4 @@ analyse:
 	$(DOCKER_COMPOSE) run --rm \
 		-v "$(PROJECT):/target:ro" \
 		-v "$(OUTPUT):/output" \
-		app php bin/bootstrap-context analyse /target --output /output
+		app php bin/architecture-discovery analyse /target --output /output

@@ -7,7 +7,6 @@ $baseDir = dirname($vendorDir);
 
 return array(
     'ArchitectureDiscovery\\Application\\Command\\AnalyseCommand' => $baseDir . '/src/Application/Command/AnalyseCommand.php',
-    'ArchitectureDiscovery\\Application\\Command\\BootstrapContextCommand' => $baseDir . '/src/Application/Command/BootstrapContextCommand.php',
     'ArchitectureDiscovery\\Domain\\Model\\Architecture' => $baseDir . '/src/Domain/Model/Architecture.php',
     'ArchitectureDiscovery\\Domain\\Model\\ClassEntity' => $baseDir . '/src/Domain/Model/ClassEntity.php',
     'ArchitectureDiscovery\\Domain\\Model\\Dependency' => $baseDir . '/src/Domain/Model/Dependency.php',

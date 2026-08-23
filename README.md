@@ -79,7 +79,7 @@ To analyze the mounted repository:
 
 ```bash
 docker compose -f docker/docker-compose.yml run --rm app \
-	php bin/bootstrap-context analyse /app \
+	php bin/architecture-discovery analyse /app \
 	--output /app/build/architecture
 ```
 
@@ -90,7 +90,7 @@ that container path in the command. For example, if the project is located at
 ```bash
 docker compose -f docker/docker-compose.yml run --rm \
 	-v /home/fkas/projects/my-app:/projects/my-app:ro \
-	app php bin/bootstrap-context analyse /projects/my-app \
+	app php bin/architecture-discovery analyse /projects/my-app \
 	--output /app/build/my-app
 ```
 
@@ -129,15 +129,6 @@ target, so use the `PROJECT=/path` form rather than
 If PHP and Composer are installed locally, the CLI can also be run directly on
 the host with the host project path. Docker is provided for a consistent PHP
 runtime and does not require projects to be copied into the image.
-
-To generate a `CONTEXT.md` file instead of running analysis, use the existing
-bootstrap command:
-
-```bash
-docker compose -f docker/docker-compose.yml run --rm \
-	-v /home/fkas/projects/my-app:/projects/my-app:ro \
-	app php bin/bootstrap-context app:bootstrap-context /projects/my-app
-```
 
 ## Run tests
 

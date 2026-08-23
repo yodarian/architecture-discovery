@@ -15,5 +15,5 @@
       "ArchitectureDiscovery\\": "src/"
     }
   },
-  "bin": ["bin/bootstrap-context"]
+  "bin": ["bin/architecture-discovery"]
 }
