@@ -80,7 +80,7 @@ To analyze the mounted repository:
 ```bash
 docker compose -f docker/docker-compose.yml run --rm app \
 	php bin/architecture-discovery analyse /app \
-	--output /app/build/architecture
+	--output /app/out/architecture-discovery
 ```
 
 To analyze another project on the host, mount it at a container path and use
@@ -91,7 +91,7 @@ that container path in the command. For example, if the project is located at
 docker compose -f docker/docker-compose.yml run --rm \
 	-v /home/fkas/projects/my-app:/projects/my-app:ro \
 	app php bin/architecture-discovery analyse /projects/my-app \
-	--output /app/build/my-app
+	--output /app/out/my-app
 ```
 
 The host path and container path are different namespaces:
@@ -102,8 +102,9 @@ Container: /projects/my-app
 ```
 
 The command must use `/projects/my-app`. The `:ro` flag mounts the target
-project read-only, while output is written to `/app/build/my-app`, which is
-inside the repository bind mount and therefore appears on the host.
+project read-only, while output is written to `/app/out/my-app`, which is
+inside the repository bind mount and therefore appears on the host, rather
+than inside the analyzed project.
 
 The same workflow is available through Make. Use `PROJECT` for the host path;
 the target project is mounted read-only inside Docker automatically:
@@ -112,9 +113,8 @@ the target project is mounted read-only inside Docker automatically:
 make analyse PROJECT=/home/fkas/projects/my-app
 ```
 
-By default, artifacts are written to
-`/home/fkas/projects/my-app/build/architecture`. Override the host output
-directory with `OUTPUT`:
+By default, artifacts are written to `out/my-app` inside this repository (never
+into the analyzed project). Override the output directory with `OUTPUT`:
 
 ```bash
 make analyse \

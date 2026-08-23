@@ -2,7 +2,7 @@
 
 DOCKER_COMPOSE := docker-compose -f docker/docker-compose.yml
 DOCKER_COMPOSE_RUN := $(DOCKER_COMPOSE) run --rm app
-OUTPUT ?= $(PROJECT)/build/architecture
+OUTPUT ?= out/$(notdir $(PROJECT))
 
 help:
 	@echo "Architecture Discovery - Development Commands"

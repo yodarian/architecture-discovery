@@ -18,14 +18,22 @@ final class AnalyseCommandTest extends TestCase
 
     protected function tearDown(): void
     {
+        $this->removeDirectory($this->tempDir);
+    }
+
+    private function removeDirectory(string $dir): void
+    {
+        if (!is_dir($dir)) {
+            return;
+        }
         $files = new \RecursiveIteratorIterator(
-            new \RecursiveDirectoryIterator($this->tempDir, \RecursiveDirectoryIterator::SKIP_DOTS),
+            new \RecursiveDirectoryIterator($dir, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::CHILD_FIRST
         );
         foreach ($files as $file) {
             $file->isDir() ? rmdir($file->getRealPath()) : unlink($file->getRealPath());
         }
-        rmdir($this->tempDir);
+        rmdir($dir);
     }
 
     public function testAnalyseEmitsCakePhpDependencyEdges(): void
@@ -76,5 +84,33 @@ PHP
         $this->assertFileExists($this->tempDir . '/out/index.html');
         $this->assertStringContainsString('<svg', file_get_contents($this->tempDir . '/out/graph.svg'));
         $this->assertStringContainsString('Architecture Overview', file_get_contents($this->tempDir . '/out/index.html'));
+    }
+
+    public function testAnalyseDefaultsOutputToRepoOutDirectoryWithoutTouchingAnalyzedProject(): void
+    {
+        file_put_contents($this->tempDir . '/src/Foo.php', <<<'PHP'
+<?php
+namespace App;
+class Foo {}
+PHP
+        );
+
+        $application = new Application();
+        $application->add(new AnalyseCommand());
+        $tester = new CommandTester($application->find('analyse'));
+
+        $repoRoot = dirname(__DIR__, 4);
+        $expectedOutputDir = $repoRoot . '/out/' . basename($this->tempDir);
+
+        try {
+            $exitCode = $tester->execute(['path' => $this->tempDir]);
+
+            $this->assertSame(0, $exitCode);
+            $this->assertFileExists($expectedOutputDir . '/architecture.json');
+            $this->assertFileDoesNotExist($this->tempDir . '/architecture.json');
+            $this->assertDirectoryDoesNotExist($this->tempDir . '/build');
+        } finally {
+            $this->removeDirectory($expectedOutputDir);
+        }
     }
 }

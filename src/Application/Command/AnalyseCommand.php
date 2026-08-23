@@ -17,7 +17,8 @@ use ArchitectureDiscovery\Reporting\HtmlReportGenerator;
 
 /**
  * Analyse command scans a PHP project and generates the canonical architecture model.
- * The output is written to architecture.json in the project directory.
+ * Output is written to this tool's own out/<project-name> directory by default,
+ * never into the analyzed project, unless --output overrides the location.
  */
 final class AnalyseCommand extends Command
 {
@@ -41,7 +42,7 @@ final class AnalyseCommand extends Command
             'output',
             'o',
             InputOption::VALUE_REQUIRED,
-            'Output directory for architecture.json (defaults to project root)',
+            'Output directory for architecture.json (defaults to out/<project-name> inside this repo)',
             null
         );
 
@@ -82,8 +83,9 @@ final class AnalyseCommand extends Command
         $projectPath = $realPath;
         $output->writeln("<info>Analyzing project: {$projectPath}</info>");
 
-        // Determine output directory
-        $outputDir = $input->getOption('output') ?? $projectPath;
+        // Determine output directory: never inside the analyzed project by default.
+        $outputOption = $input->getOption('output');
+        $outputDir = $outputOption ?? dirname(__DIR__, 3) . '/out/' . basename($projectPath);
         if (!is_dir($outputDir)) {
             if (!@mkdir($outputDir, 0755, true)) {
                 $output->writeln("<error>Failed to create output directory: {$outputDir}</error>");
