@@ -9,7 +9,7 @@ This file captures the working glossary and core decisions for the Architecture 
 - **Module**: An explicitly defined architectural code boundary created and maintained by the Developer.
 - **Bounded Context Candidate**: A hypothesis that one or more Modules represent a distinct DDD bounded context, suggested by LLM + analysis.
 - **Bounded Context**: A confirmed DDD boundary with an explicit domain meaning and model boundary, agreed and produced by Developer/domain experts.
-- **Architecture Map**: A generated Markdown summary (`architecture-map.md`) of the architecture model at cluster granularity — member class counts, internal/external dependency counts, and framework-tagged relation counts — produced so an agent or human can orient in an unfamiliar codebase without reading `architecture.json` or the source in full. It contains no per-class detail and no ubiquitous-language content; that stays the responsibility of a project's own `CONTEXT.md`.
+- **Architecture Map**: A generated Markdown summary (`architecture-map.md`) of the architecture model. It begins with a project-wide namespace tree showing cumulative class counts, followed by cluster summaries that include up to five member classes ranked by incoming dependency count, total degree, and fully-qualified name, alongside cluster metrics and framework-tagged relation counts. It is produced so an agent or human can orient in an unfamiliar codebase without reading `architecture.json` or the source in full. It contains structural facts, not ubiquitous-language content; domain terminology stays the responsibility of a project's own `CONTEXT.md`.
 
 ## Key Domain Concepts (examples used in discussions)
 
