@@ -33,10 +33,52 @@ final class ArchitectureMapRenderer
             $lines[] = '- Internal dependencies: ' . $internalEdges;
             $lines[] = '- Isolated: ' . ($isolated ? 'yes' : 'no');
             $lines[] = '- Framework-tagged relations: ' . $this->countFrameworkTaggedRelations($architecture, $classes);
+            $lines[] = '- Top classes:';
+            foreach ($this->rankClasses($architecture, $classes) as $class) {
+                $lines[] = '  - ' . $class;
+            }
             $lines[] = '';
         }
 
         return implode("\n", $lines);
+    }
+
+    /**
+     * @param string[] $classes
+     * @return string[]
+     */
+    private function rankClasses(Architecture $architecture, array $classes): array
+    {
+        $incoming = array_fill_keys($classes, 0);
+        $outgoing = array_fill_keys($classes, 0);
+
+        foreach ($architecture->getDependencies() as $dependency) {
+            $from = $dependency->getFrom()->getFullyQualifiedName();
+            $to = $dependency->getTo()->getFullyQualifiedName();
+            if (isset($outgoing[$from])) {
+                $outgoing[$from]++;
+            }
+            if (isset($incoming[$to])) {
+                $incoming[$to]++;
+            }
+        }
+
+        // Degree centrality is deliberately simple; real PageRank over a reference graph (as Aider implements) is a valid future refinement if this proves too coarse. A size-scaled cap (min(5, ceil(classCount * 0.3))) is another plausible future refinement to the flat top-5 cap.
+        usort($classes, static function (string $left, string $right) use ($incoming, $outgoing): int {
+            $incomingComparison = $incoming[$right] <=> $incoming[$left];
+            if ($incomingComparison !== 0) {
+                return $incomingComparison;
+            }
+
+            $totalComparison = ($incoming[$right] + $outgoing[$right]) <=> ($incoming[$left] + $outgoing[$left]);
+            if ($totalComparison !== 0) {
+                return $totalComparison;
+            }
+
+            return strcmp($left, $right);
+        });
+
+        return array_slice($classes, 0, 5);
     }
 
     /**
