@@ -12,6 +12,7 @@ use ArchitectureDiscovery\Domain\Model\ProjectMetadata;
 use ArchitectureDiscovery\Analysis\ProjectAnalyzer;
 use ArchitectureDiscovery\Analysis\ArchitectureMetricsCalculator;
 use ArchitectureDiscovery\Clustering\ConnectedComponentsClusterer;
+use ArchitectureDiscovery\Reporting\ArchitectureMapRenderer;
 use ArchitectureDiscovery\Reporting\GraphvizRenderer;
 use ArchitectureDiscovery\Reporting\HtmlReportGenerator;
 
@@ -57,7 +58,7 @@ final class AnalyseCommand extends Command
             'format',
             'f',
             InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED,
-            'Output formats (json, csv, html) - currently only json is supported'
+            'Output formats (json, dot, svg, html, architecture-map) - defaults to all'
         );
 
         $this->addOption(
@@ -95,7 +96,7 @@ final class AnalyseCommand extends Command
 
         $formats = $this->getFormats($input->getOption('format') ?? []);
         if ($formats === null) {
-            $output->writeln('<error>Unsupported format. Supported formats: json, dot, svg, html.</error>');
+            $output->writeln('<error>Unsupported format. Supported formats: json, dot, svg, html, architecture-map.</error>');
             return 1;
         }
 
@@ -149,6 +150,9 @@ final class AnalyseCommand extends Command
         if (in_array('html', $formats, true)) {
             $artifacts['index.html'] = (new HtmlReportGenerator())->render($architecture);
         }
+        if (in_array('architecture-map', $formats, true)) {
+            $artifacts['architecture-map.md'] = (new ArchitectureMapRenderer())->render($architecture);
+        }
         foreach ($artifacts as $name => $content) {
             if (file_put_contents($outputDir . DIRECTORY_SEPARATOR . $name, $content) === false) {
                 $output->writeln("<error>Failed to write {$name}</error>");
@@ -180,14 +184,14 @@ final class AnalyseCommand extends Command
     private function getFormats(array $requestedFormats): ?array
     {
         if ($requestedFormats === []) {
-            return ['json', 'dot', 'svg', 'html'];
+            return ['json', 'dot', 'svg', 'html', 'architecture-map'];
         }
 
         $formats = [];
         foreach ($requestedFormats as $requestedFormat) {
             foreach (explode(',', $requestedFormat) as $format) {
                 $format = strtolower(trim($format));
-                if ($format === '' || !in_array($format, ['json', 'dot', 'svg', 'html'], true)) {
+                if ($format === '' || !in_array($format, ['json', 'dot', 'svg', 'html', 'architecture-map'], true)) {
                     return null;
                 }
                 $formats[] = $format;

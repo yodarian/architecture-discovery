@@ -82,8 +82,34 @@ PHP
         $this->assertFileExists($this->tempDir . '/out/graph.dot');
         $this->assertFileExists($this->tempDir . '/out/graph.svg');
         $this->assertFileExists($this->tempDir . '/out/index.html');
+        $this->assertFileExists($this->tempDir . '/out/architecture-map.md');
         $this->assertStringContainsString('<svg', file_get_contents($this->tempDir . '/out/graph.svg'));
         $this->assertStringContainsString('Architecture Overview', file_get_contents($this->tempDir . '/out/index.html'));
+        $this->assertStringContainsString('# Architecture Map', file_get_contents($this->tempDir . '/out/architecture-map.md'));
+    }
+
+    public function testAnalyseExcludesArchitectureMapWhenFormatOmitsIt(): void
+    {
+        file_put_contents($this->tempDir . '/src/Foo.php', <<<'PHP'
+<?php
+namespace App;
+class Foo {}
+PHP
+        );
+
+        $application = new Application();
+        $application->add(new AnalyseCommand());
+        $tester = new CommandTester($application->find('analyse'));
+
+        $exitCode = $tester->execute([
+            'path' => $this->tempDir,
+            '--output' => $this->tempDir . '/out',
+            '--format' => ['json'],
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $this->assertFileExists($this->tempDir . '/out/architecture.json');
+        $this->assertFileDoesNotExist($this->tempDir . '/out/architecture-map.md');
     }
 
     public function testAnalyseDefaultsOutputToRepoOutDirectoryWithoutTouchingAnalyzedProject(): void
