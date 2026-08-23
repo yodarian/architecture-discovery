@@ -19,6 +19,7 @@ This file captures the working glossary and core decisions for the Architecture 
 - Static analysis is the canonical source for the initial dependency graph; `architecture.json` is the central, versioned IR.
 - Framework/library nodes (e.g. `Cake\*`, `Psr\*`, `PHPUnit\*`) are excluded from clustering and treated as infra nodes.
 - For dynamic resolvers like `fetchTable('X')` and `loadModel('Y')`, heuristics should attempt name resolution and mark edges as "dynamic" when uncertain.
+- ORM/framework relationship detection is pluggable per framework (CakePHP, Laravel Eloquent). Which detector(s) run is gated by `composer.json`'s `require` (e.g. `cakephp/cakephp`, `laravel/framework`) when available, falling back to running all detectors when `composer.json` is absent or inconclusive — this avoids false-positive edges from same-named methods (e.g. `belongsTo`) across unrelated frameworks. Detected edges carry a `framework` metadata tag but reuse the same generic dependency types (`orm_relation`, `dynamic_call`) regardless of source framework.
 - Classes named `*Service` are treated as potentially domain services or helpers; the Analyzer preserves the name and context for human review.
 - Clustering granularity: feature/module level (cluster contains classes belonging to a feature/module).
 - Clusters are technical groupings; they may become Module Candidates after analysis and human review.

@@ -2,6 +2,8 @@
 namespace ArchitectureDiscovery\Tests\Unit\Infrastructure\Analyzer;
 
 use ArchitectureDiscovery\Infrastructure\Analyzer\CakePhpAnalyzer;
+use ArchitectureDiscovery\Infrastructure\Analyzer\Framework;
+use ArchitectureDiscovery\Infrastructure\Analyzer\FrameworkPatternDetector;
 use PHPUnit\Framework\TestCase;
 
 final class CakePhpAnalyzerTest extends TestCase
@@ -12,6 +14,15 @@ final class CakePhpAnalyzerTest extends TestCase
     {
         $this->tempDir = sys_get_temp_dir() . '/cakephp-analyzer-test-' . uniqid();
         mkdir($this->tempDir, 0755, true);
+    }
+
+    public function testIdentifiesItselfAsCakePhpDetector(): void
+    {
+        $analyzer = new CakePhpAnalyzer();
+
+        $this->assertInstanceOf(FrameworkPatternDetector::class, $analyzer);
+        $this->assertSame(Framework::CakePhp, $analyzer->framework());
+        $this->assertSame('cakephp/cakephp', $analyzer->framework()->composerPackage());
     }
 
     protected function tearDown(): void
@@ -46,16 +57,16 @@ PHP
         $relationships = $analyzer->analyzeFile($file);
 
         $this->assertCount(7, $relationships);
-        $this->assertSame('App\Model\Table\OrdersTable', $relationships[0]['from']);
-        $this->assertSame('Customers', $relationships[0]['target']);
-        $this->assertSame('orm_relation', $relationships[0]['type']);
-        $this->assertSame(3, $relationships[0]['weight']);
-        $this->assertSame('belongsTo', $relationships[0]['metadata']['relation']);
-        $this->assertSame('fetchTable', $relationships[4]['metadata']['method']);
-        $this->assertSame('dynamic_call', $relationships[4]['type']);
-        $this->assertSame(2, $relationships[4]['weight']);
-        $this->assertTrue($relationships[4]['metadata']['static']);
-        $this->assertFalse($relationships[6]['metadata']['static']);
+        $this->assertSame('App\Model\Table\OrdersTable', $relationships[0]->from);
+        $this->assertSame('Customers', $relationships[0]->target);
+        $this->assertSame('orm_relation', $relationships[0]->type);
+        $this->assertSame(3, $relationships[0]->weight);
+        $this->assertSame('belongsTo', $relationships[0]->metadata['relation']);
+        $this->assertSame('fetchTable', $relationships[4]->metadata['method']);
+        $this->assertSame('dynamic_call', $relationships[4]->type);
+        $this->assertSame(2, $relationships[4]->weight);
+        $this->assertTrue($relationships[4]->metadata['static']);
+        $this->assertFalse($relationships[6]->metadata['static']);
     }
 
     public function testIgnoresNonCakePhpMethodsAndReportsUnresolvedDynamicCalls(): void
@@ -80,9 +91,9 @@ PHP
         $relationships = $analyzer->analyzeFile($file);
 
         $this->assertCount(1, $relationships);
-        $this->assertSame('dynamic_call', $relationships[0]['type']);
-        $this->assertFalse($relationships[0]['metadata']['static']);
-        $this->assertNull($relationships[0]['target']);
+        $this->assertSame('dynamic_call', $relationships[0]->type);
+        $this->assertFalse($relationships[0]->metadata['static']);
+        $this->assertNull($relationships[0]->target);
     }
 
     private function deleteDirectory(string $directory): void

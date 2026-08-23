@@ -4,7 +4,9 @@ namespace ArchitectureDiscovery\Analysis;
 use ArchitectureDiscovery\Domain\Model\Architecture;
 use ArchitectureDiscovery\Domain\Model\ClassEntity;
 use ArchitectureDiscovery\Domain\Model\Dependency;
-use ArchitectureDiscovery\Infrastructure\Analyzer\CakePhpAnalyzer;
+use ArchitectureDiscovery\Infrastructure\Analyzer\DetectedRelationship;
+use ArchitectureDiscovery\Infrastructure\Analyzer\Framework;
+use ArchitectureDiscovery\Infrastructure\Analyzer\FrameworkDetectorRegistry;
 use ArchitectureDiscovery\Infrastructure\Parser\PhpClassExtractor;
 use ArchitectureDiscovery\Infrastructure\Scanner\FileScanner;
 
@@ -34,8 +36,8 @@ final class ProjectAnalyzer
 
         $onProgress('Extracting classes from files...');
         $extractor = new PhpClassExtractor($projectPath);
-        $cakePhpAnalyzer = new CakePhpAnalyzer();
-        $cakeRelationships = [];
+        $detectors = (new FrameworkDetectorRegistry())->detectorsFor($projectPath);
+        $frameworkRelationships = [];
         $classCount = 0;
 
         foreach ($files as $file) {
@@ -45,17 +47,18 @@ final class ProjectAnalyzer
                     $architecture->addClass($class);
                     $classCount++;
                 }
-                $cakeRelationships = array_merge(
-                    $cakeRelationships,
-                    $cakePhpAnalyzer->analyzeFile($file->getRealPath())
-                );
+                foreach ($detectors as $detector) {
+                    foreach ($detector->analyzeFile($file->getRealPath()) as $relationship) {
+                        $frameworkRelationships[] = $relationship->withFramework($detector->framework());
+                    }
+                }
             } catch (\Exception $e) {
                 $onProgress("Warning: Failed to parse {$file->getFilename()}: {$e->getMessage()}");
             }
         }
 
         $this->addStructuralDependencies($architecture);
-        $this->addCakePhpDependencies($architecture, $cakeRelationships);
+        $this->addFrameworkDependencies($architecture, $frameworkRelationships);
 
         $onProgress("Extracted {$classCount} classes, interfaces, and traits");
     }
@@ -103,39 +106,51 @@ final class ProjectAnalyzer
     }
 
     /**
-     * Add CakePHP relationships when their target resolves to a discovered class.
+     * Add framework relationships when their target resolves to a discovered class.
      * Unresolved dynamic calls are intentionally omitted from graph edges but are
-     * still detected by CakePhpAnalyzer for future reporting.
+     * still detected by the framework detectors for future reporting.
      *
-     * @param array<int, array{from: string, target: string|null, type: string, weight: int, metadata: array<string, mixed>}> $relationships
+     * @param DetectedRelationship[] $relationships
      */
-    private function addCakePhpDependencies(Architecture $architecture, array $relationships): void
+    private function addFrameworkDependencies(Architecture $architecture, array $relationships): void
     {
         foreach ($relationships as $relationship) {
-            if ($relationship['target'] === null) {
+            if ($relationship->target === null) {
                 continue;
             }
 
-            $from = $architecture->getClass($relationship['from']);
-            $to = $this->resolveCakePhpTarget($architecture, $relationship['from'], $relationship['target']);
+            $from = $architecture->getClass($relationship->from);
+            $to = $this->resolveFrameworkTarget(
+                $architecture,
+                $relationship->from,
+                $relationship->target,
+                $relationship->framework
+            );
             if ($from === null || $to === null || $from === $to) {
                 continue;
             }
 
-            $metadata = $relationship['metadata'];
-            $metadata['target'] = $relationship['target'];
+            $metadata = [
+                ...$relationship->metadata,
+                'framework' => $relationship->framework->value,
+                'target' => $relationship->target,
+            ];
             $architecture->addDependency(new Dependency(
                 $from,
                 $to,
-                $relationship['type'],
-                $relationship['weight'],
+                $relationship->type,
+                $relationship->weight,
                 $metadata
             ));
         }
     }
 
-    private function resolveCakePhpTarget(Architecture $architecture, string $from, string $targetName): ?ClassEntity
-    {
+    private function resolveFrameworkTarget(
+        Architecture $architecture,
+        string $from,
+        string $targetName,
+        Framework $framework
+    ): ?ClassEntity {
         $source = $architecture->getClass($from);
         if ($source === null) {
             return null;
@@ -144,12 +159,7 @@ final class ProjectAnalyzer
         $targetName = ltrim($targetName, '\\');
         $candidates = str_contains($targetName, '\\')
             ? [$targetName]
-            : array_filter([
-                $source->getNamespace() . '\\' . $targetName . 'Table',
-                $source->getNamespace() . '\\' . $targetName,
-                $targetName . 'Table',
-                $targetName,
-            ]);
+            : $this->buildTargetCandidates($source, $targetName, $framework);
 
         foreach ($candidates as $candidate) {
             $resolved = $architecture->getClass($candidate);
@@ -159,11 +169,34 @@ final class ProjectAnalyzer
         }
 
         foreach ($architecture->getClasses() as $class) {
-            if ($class->getName() === $targetName || $class->getName() === $targetName . 'Table') {
+            if ($class->getName() === $targetName) {
+                return $class;
+            }
+            if ($framework === Framework::CakePhp && $class->getName() === $targetName . 'Table') {
                 return $class;
             }
         }
 
         return null;
+    }
+
+    /**
+     * @return string[]
+     */
+    private function buildTargetCandidates(ClassEntity $source, string $targetName, Framework $framework): array
+    {
+        if ($framework === Framework::CakePhp) {
+            return array_filter([
+                $source->getNamespace() . '\\' . $targetName . 'Table',
+                $source->getNamespace() . '\\' . $targetName,
+                $targetName . 'Table',
+                $targetName,
+            ]);
+        }
+
+        return array_filter([
+            $source->getNamespace() . '\\' . $targetName,
+            $targetName,
+        ]);
     }
 }

@@ -90,6 +90,44 @@ PHP
         }
         $this->assertSame(3, $dependenciesByType[Dependency::TYPE_ORM_RELATION]->getWeight());
         $this->assertSame(2, $dependenciesByType[Dependency::TYPE_DYNAMIC_CALL]->getWeight());
+        $this->assertSame('cakephp', $dependenciesByType[Dependency::TYPE_ORM_RELATION]->getMetadata()['framework']);
+    }
+
+    public function testResolvesLaravelEloquentRelationToDiscoveredClassWhenComposerRequiresLaravel(): void
+    {
+        file_put_contents($this->tempDir . '/composer.json', json_encode([
+            'require' => ['laravel/framework' => '^11.0'],
+        ]));
+        file_put_contents($this->tempDir . '/Customer.php', <<<'PHP'
+<?php
+namespace App\Models;
+class Customer {}
+PHP
+        );
+        file_put_contents($this->tempDir . '/Order.php', <<<'PHP'
+<?php
+namespace App\Models;
+class Order
+{
+    public function customer()
+    {
+        return $this->belongsTo(Customer::class);
+    }
+}
+PHP
+        );
+
+        $architecture = $this->newArchitecture();
+        (new ProjectAnalyzer())->analyze($architecture, $this->tempDir);
+
+        $dependenciesByType = [];
+        foreach ($architecture->getDependencies() as $dependency) {
+            $dependenciesByType[$dependency->getType()] = $dependency;
+        }
+        $ormDependency = $dependenciesByType[Dependency::TYPE_ORM_RELATION];
+        $this->assertSame('Order', $ormDependency->getFrom()->getName());
+        $this->assertSame('Customer', $ormDependency->getTo()->getName());
+        $this->assertSame('laravel', $ormDependency->getMetadata()['framework']);
     }
 
     public function testReportsPerFileParseFailureViaProgressCallbackAndContinues(): void
