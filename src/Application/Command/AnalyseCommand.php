@@ -69,6 +69,15 @@ final class AnalyseCommand extends Command
             'Version string for the architecture model',
             '1.0.0'
         );
+
+        $this->addOption('config', null, InputOption::VALUE_REQUIRED, 'Explicit module analysis configuration JSON file');
+        $this->addOption('alias', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Candidate alias (candidate=alias[,alias])');
+        $this->addOption('namespace-pattern', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Namespace pattern (candidate=pattern)');
+        $this->addOption('exclude-role', null, InputOption::VALUE_IS_ARRAY | InputOption::VALUE_REQUIRED, 'Exclude role from core membership (test, migration, framework)');
+        $this->addOption('candidate', null, InputOption::VALUE_REQUIRED, 'Render only one candidate in module overview');
+        $this->addOption('shared', null, InputOption::VALUE_NONE, 'Render shared candidates only');
+        $this->addOption('unassigned', null, InputOption::VALUE_NONE, 'Include all unassigned classes in module overview');
+        $this->addOption('framework', null, InputOption::VALUE_NONE, 'Include framework classes in module overview');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output): int
@@ -124,10 +133,15 @@ final class AnalyseCommand extends Command
 
         $metadata = new ProjectMetadata($projectName, $projectPath, $projectVersion, $generatedAt, $composerData);
         $architecture = new Architecture($metadata);
+        $moduleConfiguration = $this->buildModuleConfiguration($projectPath, $composerData, $input, $output);
+        if ($moduleConfiguration === null) {
+            return 1;
+        }
+        $architecture->setAnalysisConfiguration($moduleConfiguration);
 
         // Scan and analyze
         try {
-            $this->analyzeProject($architecture, $projectPath, $excludeDirs, $output);
+            $this->analyzeProject($architecture, $projectPath, $excludeDirs, $output, $moduleConfiguration);
         } catch (\Exception $e) {
             $output->writeln("<error>Analysis failed: {$e->getMessage()}</error>");
             if ($output->isVerbose()) {
@@ -147,7 +161,7 @@ final class AnalyseCommand extends Command
         }
         if (in_array('svg', $formats, true)) {
             $artifacts['graph.svg'] = $renderer->renderSvg($architecture);
-            $artifacts['modules.svg'] = (new ModuleOverviewRenderer())->renderSvg($architecture);
+            $artifacts['modules.svg'] = (new ModuleOverviewRenderer())->renderSvg($architecture, $moduleConfiguration['filters'] ?? []);
         }
         if (in_array('html', $formats, true)) {
             $artifacts['index.html'] = (new HtmlReportGenerator())->render($architecture);
@@ -210,9 +224,10 @@ final class AnalyseCommand extends Command
         Architecture $architecture,
         string $projectPath,
         array $excludeDirs,
-        OutputInterface $output
+        OutputInterface $output,
+        array $moduleConfiguration = []
     ): void {
-        (new ProjectAnalyzer())->analyze(
+        (new ProjectAnalyzer($moduleConfiguration))->analyze(
             $architecture,
             $projectPath,
             $excludeDirs,
@@ -222,6 +237,82 @@ final class AnalyseCommand extends Command
                 }
             }
         );
+    }
+
+    /** @return array<string, mixed>|null */
+    private function buildModuleConfiguration(string $projectPath, array $composerData, InputInterface $input, OutputInterface $output): ?array
+    {
+        $configuration = [];
+        $sources = [];
+        $projectConfiguration = $composerData['extra']['architecture-discovery'] ?? null;
+        if (is_array($projectConfiguration)) {
+            $configuration = $projectConfiguration;
+            $sources[] = 'composer.extra.architecture-discovery';
+        }
+        $configPath = $input->getOption('config');
+        if ($configPath !== null) {
+            $resolvedConfigPath = realpath($configPath);
+            if ($resolvedConfigPath === false || !is_file($resolvedConfigPath)) {
+                $output->writeln("<error>Module configuration file does not exist: {$configPath}</error>");
+                return null;
+            }
+            $content = file_get_contents($resolvedConfigPath);
+            $fileConfiguration = $content === false ? null : json_decode($content, true);
+            if (!is_array($fileConfiguration)) {
+                $output->writeln("<error>Invalid module configuration: {$configPath}</error>");
+                return null;
+            }
+            $configuration = array_replace_recursive($configuration, $fileConfiguration);
+            $sources[] = $resolvedConfigPath;
+        }
+        foreach ($input->getOption('alias') ?? [] as $value) {
+            [$candidate, $aliases] = array_pad(explode('=', $value, 2), 2, '');
+            $aliasValues = array_values(array_filter(array_map('trim', explode(',', $aliases))));
+            if ($candidate === '' || $aliasValues === []) {
+                $output->writeln("<error>Invalid alias configuration: {$value}</error>");
+                return null;
+            }
+            $configuration['vocabulary'][$candidate] = $aliasValues;
+        }
+        foreach ($input->getOption('namespace-pattern') ?? [] as $value) {
+            [$candidate, $pattern] = array_pad(explode('=', $value, 2), 2, '');
+            if ($candidate === '' || trim($pattern) === '') {
+                $output->writeln("<error>Invalid namespace pattern: {$value}</error>");
+                return null;
+            }
+            $configuration['namespacePatterns'][$candidate] = [$pattern];
+        }
+        foreach ($input->getOption('exclude-role') ?? [] as $role) {
+            $role = trim($role);
+            if (!in_array($role, ['domain', 'application', 'interface', 'infrastructure', 'persistence', 'test', 'migration', 'framework', 'shared', 'unknown'], true)) {
+                $output->writeln("<error>Unknown module role: {$role}</error>");
+                return null;
+            }
+            $configuration['excludedRoles'][$role] = true;
+        }
+        $candidate = $input->getOption('candidate');
+        if ($candidate !== null && trim($candidate) === '') {
+            $output->writeln('<error>Candidate filter cannot be empty</error>');
+            return null;
+        }
+        if ($candidate !== null) {
+            $configuration['filters']['candidate'] = $candidate;
+        }
+        if ($input->getOption('shared')) {
+            $configuration['filters']['shared'] = true;
+        }
+        if ($input->getOption('unassigned')) {
+            $configuration['filters']['unassigned'] = true;
+        }
+        if ($input->getOption('framework')) {
+            $configuration['filters']['framework'] = true;
+        }
+        $configuration['sources'] = array_values(array_unique($sources));
+        if ($input->getOption('alias') !== [] || $input->getOption('namespace-pattern') !== [] || $input->getOption('exclude-role') !== [] || $candidate !== null || $input->getOption('shared') || $input->getOption('unassigned') || $input->getOption('framework')) {
+            $configuration['sources'][] = 'cli';
+        }
+        sort($configuration['sources']);
+        return $configuration;
     }
 
     /**

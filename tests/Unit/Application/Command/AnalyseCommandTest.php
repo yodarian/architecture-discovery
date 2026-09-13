@@ -82,6 +82,7 @@ PHP
         $this->assertArrayHasKey('moduleCandidates', $data);
         $this->assertSame([], $data['moduleCandidates']);
         $this->assertArrayHasKey('classMemberships', $data);
+        $this->assertArrayHasKey('analysisConfiguration', $data);
         $this->assertFileExists($this->tempDir . '/out/graph.dot');
         $this->assertFileExists($this->tempDir . '/out/graph.svg');
         $this->assertFileExists($this->tempDir . '/out/modules.svg');
@@ -114,6 +115,38 @@ PHP
         $this->assertSame(0, $exitCode);
         $this->assertFileExists($this->tempDir . '/out/architecture.json');
         $this->assertFileDoesNotExist($this->tempDir . '/out/architecture-map.md');
+    }
+
+    public function testConfigurationAliasesAndCliOverridesAreSerializedWithProvenance(): void
+    {
+        file_put_contents($this->tempDir . '/composer.json', json_encode([
+            'extra' => ['architecture-discovery' => ['vocabulary' => ['todo' => ['task']]]],
+        ]));
+        file_put_contents($this->tempDir . '/src/Task.php', "<?php namespace App; class Task {}\n");
+        file_put_contents($this->tempDir . '/src/Todo.php', "<?php namespace App; class Todo {}\n");
+        file_put_contents($this->tempDir . '/src/WorkItem.php', "<?php namespace App; class WorkItem {}\n");
+        file_put_contents($this->tempDir . '/config.json', json_encode([
+            'vocabulary' => ['todo' => ['work_item']],
+            'namespacePatterns' => ['todo' => ['App\\Features\\Todo']],
+        ]));
+
+        $application = new Application();
+        $application->add(new AnalyseCommand());
+        $tester = new CommandTester($application->find('analyse'));
+        $exitCode = $tester->execute([
+            'path' => $this->tempDir,
+            '--output' => $this->tempDir . '/out',
+            '--config' => $this->tempDir . '/config.json',
+            '--alias' => ['todo=task'],
+            '--format' => ['json'],
+        ]);
+
+        $this->assertSame(0, $exitCode);
+        $data = json_decode(file_get_contents($this->tempDir . '/out/architecture.json'), true);
+        $this->assertSame(['task'], $data['analysisConfiguration']['vocabulary']['todo']);
+        $this->assertSame(['App\\Features\\Todo'], $data['analysisConfiguration']['namespacePatterns']['todo']);
+        $this->assertContains('cli', $data['analysisConfiguration']['sources']);
+        $this->assertArrayHasKey('module-todo', array_column($data['moduleCandidates'], null, 'id'));
     }
 
     public function testAnalyseDefaultsOutputToRepoOutDirectoryWithoutTouchingAnalyzedProject(): void

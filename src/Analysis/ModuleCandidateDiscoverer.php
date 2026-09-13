@@ -11,8 +11,14 @@ final class ModuleCandidateDiscoverer
 {
     /**
      * @param array<string, string[]> $namespacePatterns Candidate token to expected namespace patterns.
+     * @param array<string, string[]> $vocabulary Candidate token to aliases.
+     * @param array<string, bool> $excludedRoles Role names mapped to whether they are excluded from core membership.
      */
-    public function __construct(private array $namespacePatterns = [])
+    public function __construct(
+        private array $namespacePatterns = [],
+        private array $vocabulary = [],
+        private array $excludedRoles = []
+    )
     {
     }
 
@@ -62,7 +68,7 @@ final class ModuleCandidateDiscoverer
                 'path' => $this->normalizeTokens($class->getFile()),
             ];
             foreach ($sources as $source => $tokens) {
-                foreach ($tokens as $token) {
+                foreach ($this->candidateTokens($tokens) as $token) {
                     if (isset(self::STOP_WORDS[$token])) {
                         continue;
                     }
@@ -277,7 +283,29 @@ final class ModuleCandidateDiscoverer
 
     private function isCoreEligible(string $role): bool
     {
+        if (array_key_exists($role, $this->excludedRoles)) {
+            return !$this->excludedRoles[$role];
+        }
         return !in_array($role, ['test', 'migration', 'framework'], true);
+    }
+
+    /**
+     * @param string[] $tokens
+     * @return string[]
+     */
+    private function candidateTokens(array $tokens): array
+    {
+        $result = $tokens;
+        $available = array_fill_keys($tokens, true);
+        foreach ($this->vocabulary as $candidate => $aliases) {
+            foreach (array_merge([$candidate], $aliases) as $alias) {
+                $aliasTokens = $this->normalizeTokens($alias);
+                if ($aliasTokens !== [] && count(array_diff($aliasTokens, array_keys($available))) === 0) {
+                    $result[] = $this->canonicalToken(strtolower($candidate));
+                }
+            }
+        }
+        return array_values(array_unique($result));
     }
 
     /**

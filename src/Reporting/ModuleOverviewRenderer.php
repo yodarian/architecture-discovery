@@ -9,11 +9,24 @@ use ArchitectureDiscovery\Domain\Model\ClassEntity;
  */
 final class ModuleOverviewRenderer
 {
-    public function renderDot(Architecture $architecture): string
+    /** @param array<string, mixed> $filters */
+    public function renderDot(Architecture $architecture, array $filters = []): string
     {
         $candidates = $architecture->getModuleCandidates();
+        $allCandidates = $candidates;
+        $sharedCandidateIds = $this->sharedCandidateIds($allCandidates);
+        if (($filters['shared'] ?? false) === true) {
+            $candidates = array_values(array_filter($candidates, static fn(array $candidate): bool => isset($sharedCandidateIds[$candidate['id']])));
+        }
+        if (isset($filters['candidate'])) {
+            $candidateId = (string) $filters['candidate'];
+            $candidates = array_values(array_filter(
+                $candidates,
+                static fn(array $candidate): bool => $candidate['id'] === $candidateId || $candidate['name'] === $candidateId
+            ));
+        }
         usort($candidates, static fn(array $left, array $right): int => strcmp($left['id'], $right['id']));
-        $sharedCandidates = $this->sharedCandidateIds($candidates);
+        $sharedCandidates = $sharedCandidateIds;
 
         $classOwners = $this->classOwners($architecture, $candidates);
         $adjacentUnassigned = $this->adjacentUnassigned($architecture, $classOwners);
@@ -68,6 +81,32 @@ final class ModuleOverviewRenderer
             $lines[] = '  }';
         }
 
+        if (($filters['unassigned'] ?? false) === true) {
+            $lines[] = '  subgraph "cluster_unassigned" {';
+            $lines[] = '    label="Unassigned";';
+            foreach ($architecture->getUnassignedClasses() as $className) {
+                $class = $architecture->getClass($className);
+                if ($class !== null) {
+                    $lines[] = '    ' . $this->quote('unassigned_' . md5($className)) . ' [label=' . $this->quote($class->getName() . ' (unassigned)') . ', style=dashed];';
+                }
+            }
+            $lines[] = '  }';
+        }
+        if (($filters['framework'] ?? false) === true) {
+            $lines[] = '  subgraph "cluster_framework" {';
+            $lines[] = '    label="Framework";';
+            foreach ($architecture->getClassMemberships() as $className => $membership) {
+                if (($membership['role'] ?? null) !== 'framework') {
+                    continue;
+                }
+                $class = $architecture->getClass($className);
+                if ($class !== null) {
+                    $lines[] = '    ' . $this->quote('framework_' . md5($className)) . ' [label=' . $this->quote($class->getName() . ' (framework)') . ', color="#718096"];';
+                }
+            }
+            $lines[] = '  }';
+        }
+
         foreach ($this->aggregateDependencies($architecture, $classOwners) as $edge) {
             $lines[] = '  ' . $this->quote($edge['from']) . ' -> ' . $this->quote($edge['to'])
                 . ' [label=' . $this->quote('types=' . implode('|', $edge['types']) . ', count=' . $edge['count'] . ', strength=' . $edge['strength'])
@@ -90,9 +129,10 @@ final class ModuleOverviewRenderer
         return implode("\n", $lines) . "\n";
     }
 
-    public function renderSvg(Architecture $architecture): string
+    /** @param array<string, mixed> $filters */
+    public function renderSvg(Architecture $architecture, array $filters = []): string
     {
-        $dot = $this->renderDot($architecture);
+        $dot = $this->renderDot($architecture, $filters);
         $process = proc_open(
             ['dot', '-Tsvg'],
             [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']],
@@ -110,12 +150,13 @@ final class ModuleOverviewRenderer
             }
         }
 
-        return $this->renderFallbackSvg($architecture);
+        return $this->renderFallbackSvg($architecture, $filters);
     }
 
-    public function renderFallbackSvg(Architecture $architecture): string
+    /** @param array<string, mixed> $filters */
+    public function renderFallbackSvg(Architecture $architecture, array $filters = []): string
     {
-        return $this->fallbackSvg($architecture);
+        return $this->fallbackSvg($architecture, $filters);
     }
 
     /**
@@ -246,7 +287,8 @@ final class ModuleOverviewRenderer
         return $shared;
     }
 
-    private function fallbackSvg(Architecture $architecture): string
+    /** @param array<string, mixed> $filters */
+    private function fallbackSvg(Architecture $architecture, array $filters = []): string
     {
         $lines = [
             'Module Overview',
@@ -261,7 +303,12 @@ final class ModuleOverviewRenderer
             'Namespace drift: dotted',
             'Unassigned: dashed',
         ];
-        foreach ($architecture->getModuleCandidates() as $candidate) {
+        $candidates = $architecture->getModuleCandidates();
+        if (isset($filters['candidate'])) {
+            $candidateId = (string) $filters['candidate'];
+            $candidates = array_values(array_filter($candidates, static fn(array $candidate): bool => $candidate['id'] === $candidateId || $candidate['name'] === $candidateId));
+        }
+        foreach ($candidates as $candidate) {
             $lines[] = $candidate['name'] . ' (confidence ' . number_format((float) $candidate['confidence'], 2) . ')';
         }
         $height = max(80, count($lines) * 28 + 20);

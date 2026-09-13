@@ -167,4 +167,33 @@ final class ModuleCandidateDiscovererTest extends TestCase
             ],
         ], $todo['namespace']['driftingMembers']);
     }
+
+    public function testUsesConfiguredAliasesAndCanIncludeSupportingRoles(): void
+    {
+        $architecture = new Architecture(new ProjectMetadata(
+            'configured-demo',
+            '/tmp/configured-demo',
+            '1.0.0',
+            new DateTimeImmutable('2026-01-01T00:00:00Z')
+        ));
+        foreach ([
+            new ClassEntity('App\\Task\\Task', 'class', 'App\\Task', 'Task', 'src/Task/Task.php', 1),
+            new ClassEntity('App\\Work\\WorkItem', 'class', 'App\\Work', 'WorkItem', 'src/Work/WorkItem.php', 1),
+            new ClassEntity('Tests\\TaskTest', 'class', 'Tests', 'TaskTest', 'tests/TaskTest.php', 1),
+        ] as $class) {
+            $architecture->addClass($class);
+        }
+
+        $candidates = (new ModuleCandidateDiscoverer([], [
+            'todo' => ['task', 'work_item'],
+        ], ['test' => true]))->discover($architecture);
+
+        $this->assertSame('module-todo', $candidates[0]['id']);
+        $this->assertSame([
+            'App\\Task\\Task',
+            'App\\Work\\WorkItem',
+        ], $candidates[0]['coreMembers']);
+        $this->assertSame(['Tests\\TaskTest'], $candidates[0]['supportingMembers']);
+        $this->assertSame('todo', $candidates[0]['evidence']['token']);
+    }
 }

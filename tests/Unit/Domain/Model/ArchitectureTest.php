@@ -134,6 +134,7 @@ final class ArchitectureTest extends TestCase
         $this->assertArrayHasKey('moduleCandidates', $array);
         $this->assertArrayHasKey('unassignedClasses', $array);
         $this->assertArrayHasKey('classMemberships', $array);
+        $this->assertArrayHasKey('analysisConfiguration', $array);
 
         $this->assertSame('1.0.0', $array['version']);
         $this->assertCount(1, $array['classes']);
@@ -141,6 +142,7 @@ final class ArchitectureTest extends TestCase
         $this->assertSame([], $array['moduleCandidates']);
         $this->assertSame([], $array['unassignedClasses']);
         $this->assertSame([], $array['classMemberships']);
+        $this->assertSame([], $array['analysisConfiguration']);
     }
 
     public function testSerializationOrdersClassesAndDependenciesDeterministically(): void

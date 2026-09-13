@@ -16,6 +16,11 @@ use ArchitectureDiscovery\Infrastructure\Scanner\FileScanner;
  */
 final class ProjectAnalyzer
 {
+    /** @param array<string, mixed> $moduleConfiguration */
+    public function __construct(private array $moduleConfiguration = [])
+    {
+    }
+
     /**
      * @param string[] $excludeDirs
      * @param ?callable(string): void $onProgress Called with human-readable progress messages
@@ -59,7 +64,11 @@ final class ProjectAnalyzer
 
         $this->addStructuralDependencies($architecture);
         $this->addFrameworkDependencies($architecture, $frameworkRelationships);
-        $architecture->setModuleCandidates((new ModuleCandidateDiscoverer())->discover($architecture));
+        $architecture->setModuleCandidates((new ModuleCandidateDiscoverer(
+            $this->moduleConfiguration['namespacePatterns'] ?? [],
+            $this->moduleConfiguration['vocabulary'] ?? [],
+            $this->moduleConfiguration['excludedRoles'] ?? []
+        ))->discover($architecture));
 
         $onProgress("Extracted {$classCount} classes, interfaces, and traits");
     }

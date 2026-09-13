@@ -22,6 +22,8 @@ final class Architecture
     private array $unassignedClasses = [];
     /** @var array<string, array<string, mixed>> */
     private array $classMemberships = [];
+    /** @var array<string, mixed> */
+    private array $analysisConfiguration = [];
 
     public function __construct(ProjectMetadata $metadata)
     {
@@ -155,6 +157,22 @@ final class Architecture
     }
 
     /**
+     * @param array<string, mixed> $configuration
+     */
+    public function setAnalysisConfiguration(array $configuration): void
+    {
+        $this->analysisConfiguration = $configuration;
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function getAnalysisConfiguration(): array
+    {
+        return $this->analysisConfiguration;
+    }
+
+    /**
      * Serialize to array suitable for JSON output
      *
      * @return array<string, mixed>
@@ -172,6 +190,7 @@ final class Architecture
             'moduleCandidates' => $this->moduleCandidates,
             'unassignedClasses' => $this->unassignedClasses,
             'classMemberships' => $this->classMemberships,
+            'analysisConfiguration' => $this->analysisConfiguration,
         ];
     }
 }

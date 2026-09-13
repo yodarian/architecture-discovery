@@ -78,5 +78,16 @@ final class ModuleOverviewRendererTest extends TestCase
         $svg = (new ModuleOverviewRenderer())->renderFallbackSvg($architecture);
         $this->assertStringContainsString('Namespace drift: dotted', $svg);
         $this->assertStringContainsString('Unassigned: dashed', $svg);
+
+        $filtered = (new ModuleOverviewRenderer())->renderDot($architecture, ['candidate' => 'module-order']);
+        $this->assertStringContainsString('cluster_module-order', $filtered);
+        $this->assertStringNotContainsString('cluster_module-user', $filtered);
+
+        $shared = (new ModuleOverviewRenderer())->renderDot($architecture, ['shared' => true]);
+        $this->assertStringContainsString('cluster_module-user', $shared);
+        $this->assertStringNotContainsString('cluster_module-order', $shared);
+
+        $unassigned = (new ModuleOverviewRenderer())->renderDot($architecture, ['unassigned' => true]);
+        $this->assertStringContainsString('cluster_unassigned', $unassigned);
     }
 }

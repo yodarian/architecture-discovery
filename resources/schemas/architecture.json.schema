@@ -249,6 +249,16 @@
           "supportingCandidates": { "type": "array", "items": { "type": "string" } }
         }
       }
+    },
+    "analysisConfiguration": {
+      "type": "object",
+      "description": "Normalized analysis configuration and provenance.",
+      "properties": {
+        "vocabulary": { "type": "object" },
+        "namespacePatterns": { "type": "object" },
+        "excludedRoles": { "type": "object" },
+        "sources": { "type": "array", "items": { "type": "string" } }
+      }
     }
   }
 }
