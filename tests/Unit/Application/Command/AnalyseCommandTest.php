@@ -84,6 +84,7 @@ PHP
         $this->assertArrayHasKey('classMemberships', $data);
         $this->assertFileExists($this->tempDir . '/out/graph.dot');
         $this->assertFileExists($this->tempDir . '/out/graph.svg');
+        $this->assertFileExists($this->tempDir . '/out/modules.svg');
         $this->assertFileExists($this->tempDir . '/out/index.html');
         $this->assertFileExists($this->tempDir . '/out/architecture-map.md');
         $this->assertStringContainsString('<svg', file_get_contents($this->tempDir . '/out/graph.svg'));

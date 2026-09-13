@@ -6,11 +6,11 @@
 
 **Status:** ready-for-agent
 
-- [ ] Generate a separate module overview artifact alongside the raw class graph.
-- [ ] Render one grouped node or compound cluster for each module candidate.
-- [ ] Display strong shared candidates once and connect them to consuming candidates.
-- [ ] Aggregate class dependencies into candidate-to-candidate edges with counts and weighted strength.
-- [ ] Display candidate confidence as explicit text and visual treatment.
-- [ ] Show candidate-adjacent unassigned classes by default.
-- [ ] Keep the raw `graph.svg` available for class-level evidence and diagnostics.
-- [ ] Add renderer tests for candidate groups, shared candidates, aggregation, confidence, and unassigned-code visibility.
+- [x] Generate a separate module overview artifact alongside the raw class graph.
+- [x] Render one grouped node or compound cluster for each module candidate.
+- [x] Display strong shared candidates once and connect them to consuming candidates.
+- [x] Aggregate class dependencies into candidate-to-candidate edges with counts and weighted strength.
+- [x] Display candidate confidence as explicit text and visual treatment.
+- [x] Show candidate-adjacent unassigned classes by default.
+- [x] Keep the raw `graph.svg` available for class-level evidence and diagnostics.
+- [x] Add renderer tests for candidate groups, shared candidates, aggregation, confidence, and unassigned-code visibility.

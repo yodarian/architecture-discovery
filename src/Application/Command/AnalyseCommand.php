@@ -14,6 +14,7 @@ use ArchitectureDiscovery\Analysis\ArchitectureMetricsCalculator;
 use ArchitectureDiscovery\Clustering\ConnectedComponentsClusterer;
 use ArchitectureDiscovery\Reporting\ArchitectureMapRenderer;
 use ArchitectureDiscovery\Reporting\GraphvizRenderer;
+use ArchitectureDiscovery\Reporting\ModuleOverviewRenderer;
 use ArchitectureDiscovery\Reporting\HtmlReportGenerator;
 
 /**
@@ -146,6 +147,7 @@ final class AnalyseCommand extends Command
         }
         if (in_array('svg', $formats, true)) {
             $artifacts['graph.svg'] = $renderer->renderSvg($architecture);
+            $artifacts['modules.svg'] = (new ModuleOverviewRenderer())->renderSvg($architecture);
         }
         if (in_array('html', $formats, true)) {
             $artifacts['index.html'] = (new HtmlReportGenerator())->render($architecture);
