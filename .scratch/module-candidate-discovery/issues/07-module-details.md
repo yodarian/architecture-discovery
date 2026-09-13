@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Provide a candidate-focused detail representation or filtered class graph.
-- [ ] Separate core, related, shared, and unassigned sections.
-- [ ] Show the underlying class dependencies behind aggregated module edges.
-- [ ] Show actual namespaces, source locations, roles, confidence, and evidence.
-- [ ] Highlight namespace drift and informational suggested locations.
-- [ ] Support candidate-focused review without modifying the analyzed project.
-- [ ] Add tests for detail completeness, membership categories, evidence, drift, and filtering.
+- [x] Provide a candidate-focused detail representation or filtered class graph.
+- [x] Separate core, related, shared, and unassigned sections.
+- [x] Show the underlying class dependencies behind aggregated module edges.
+- [x] Show actual namespaces, source locations, roles, confidence, and evidence.
+- [x] Highlight namespace drift and informational suggested locations.
+- [x] Support candidate-focused review without modifying the analyzed project.
+- [x] Add tests for detail completeness, membership categories, evidence, drift, and filtering.
