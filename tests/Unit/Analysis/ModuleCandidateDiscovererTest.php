@@ -4,6 +4,7 @@ namespace ArchitectureDiscovery\Tests\Unit\Analysis;
 use ArchitectureDiscovery\Analysis\ModuleCandidateDiscoverer;
 use ArchitectureDiscovery\Domain\Model\Architecture;
 use ArchitectureDiscovery\Domain\Model\ClassEntity;
+use ArchitectureDiscovery\Domain\Model\Dependency;
 use ArchitectureDiscovery\Domain\Model\ProjectMetadata;
 use DateTimeImmutable;
 use PHPUnit\Framework\TestCase;
@@ -55,5 +56,50 @@ final class ModuleCandidateDiscovererTest extends TestCase
             $discoverer->normalizeTokens('TodoItemRepository todo_item-repository')
         );
         $this->assertNotContains('todo', $discoverer->normalizeTokens('AntidoteService'));
+    }
+
+    public function testReportsSharedRelatedSupportingAndUnassignedCodeWithRoles(): void
+    {
+        $architecture = new Architecture(new ProjectMetadata(
+            'multi-feature-demo',
+            '/tmp/multi-feature-demo',
+            '1.0.0',
+            new DateTimeImmutable('2026-01-01T00:00:00Z')
+        ));
+        $classes = [
+            new ClassEntity('App\\Order\\Order', 'class', 'App\\Order', 'Order', 'src/Order/Order.php', 1),
+            new ClassEntity('App\\Order\\OrderService', 'class', 'App\\Order', 'OrderService', 'src/Order/OrderService.php', 1),
+            new ClassEntity('App\\User\\User', 'class', 'App\\User', 'User', 'src/User/User.php', 1),
+            new ClassEntity('App\\User\\UserService', 'class', 'App\\User', 'UserService', 'src/User/UserService.php', 1),
+            new ClassEntity('App\\Infrastructure\\Audit\\AuditLogger', 'class', 'App\\Infrastructure\\Audit', 'AuditLogger', 'src/Infrastructure/Audit/AuditLogger.php', 1),
+            new ClassEntity('App\\Shared\\Logger', 'class', 'App\\Shared', 'Logger', 'src/Shared/Logger.php', 1),
+            new ClassEntity('App\\Order\\OrderTest', 'class', 'App\\Order', 'OrderTest', 'tests/Order/OrderTest.php', 1),
+            new ClassEntity('App\\Migrations\\CreateOrdersTable', 'class', 'App\\Migrations', 'CreateOrdersTable', 'migrations/CreateOrdersTable.php', 1),
+            new ClassEntity('App\\Kernel', 'class', 'App', 'Kernel', 'src/Kernel.php', 1),
+            new ClassEntity('App\\Legacy\\Invoice', 'class', 'App\\Legacy', 'Invoice', 'src/Legacy/Invoice.php', 1),
+        ];
+        foreach ($classes as $class) {
+            $architecture->addClass($class);
+        }
+        $architecture->addDependency(new Dependency($classes[1], $classes[5], Dependency::TYPE_USES));
+        $architecture->addDependency(new Dependency($classes[3], $classes[5], Dependency::TYPE_USES));
+        $architecture->addDependency(new Dependency($classes[6], $classes[0], Dependency::TYPE_USES));
+        $architecture->addDependency(new Dependency($classes[7], $classes[0], Dependency::TYPE_USES));
+
+        $candidates = (new ModuleCandidateDiscoverer())->discover($architecture);
+        $byId = array_column($candidates, null, 'id');
+
+        $this->assertArrayHasKey('module-order', $byId);
+        $this->assertArrayHasKey('module-user', $byId);
+        $this->assertContains('App\\Shared\\Logger', $byId['module-order']['relatedMembers']);
+        $this->assertContains('App\\Shared\\Logger', $byId['module-user']['relatedMembers']);
+        $this->assertContains('App\\Order\\OrderTest', $byId['module-order']['supportingMembers']);
+        $this->assertContains('App\\Migrations\\CreateOrdersTable', $byId['module-order']['supportingMembers']);
+        $this->assertSame('domain', $byId['module-order']['roles']['App\\Order\\Order']);
+        $this->assertSame('application', $byId['module-order']['roles']['App\\Order\\OrderService']);
+        $this->assertSame('infrastructure', $architecture->getClassMemberships()['App\\Infrastructure\\Audit\\AuditLogger']['role']);
+        $this->assertSame('test', $architecture->getClassMemberships()['App\\Order\\OrderTest']['role']);
+        $this->assertSame('framework', $architecture->getClassMemberships()['App\\Kernel']['role']);
+        $this->assertContains('App\\Legacy\\Invoice', $architecture->getUnassignedClasses());
     }
 }

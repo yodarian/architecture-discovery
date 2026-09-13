@@ -81,6 +81,7 @@ PHP
         $this->assertArrayHasKey('clusters', $data);
         $this->assertArrayHasKey('moduleCandidates', $data);
         $this->assertSame([], $data['moduleCandidates']);
+        $this->assertArrayHasKey('classMemberships', $data);
         $this->assertFileExists($this->tempDir . '/out/graph.dot');
         $this->assertFileExists($this->tempDir . '/out/graph.svg');
         $this->assertFileExists($this->tempDir . '/out/index.html');

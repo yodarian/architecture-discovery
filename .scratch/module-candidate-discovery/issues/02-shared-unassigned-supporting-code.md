@@ -6,12 +6,12 @@
 
 **Status:** ready-for-agent
 
-- [ ] Allow one primary candidate, multiple related candidates, or no owner for a class.
-- [ ] Suggest a strong shared concept such as User as its own candidate when evidence supports it.
-- [ ] Keep weakly shared utilities outside candidate ownership while reporting their collaborations.
-- [ ] Report classes with insufficient evidence as unassigned.
-- [ ] Classify source elements by role, including domain, application, interface, infrastructure, persistence, test, migration, framework, shared, and unknown.
-- [ ] Exclude tests and migrations from core membership by default while retaining them as supporting evidence.
-- [ ] Prevent generic bootstrap and framework classes from establishing candidate ownership.
-- [ ] Preserve controllers as eligible feature entrypoints.
-- [ ] Add tests using multiple candidates, shared services, unrelated legacy classes, tests, migrations, and generic bootstrap classes.
+- [x] Allow one primary candidate, multiple related candidates, or no owner for a class.
+- [x] Suggest a strong shared concept such as User as its own candidate when evidence supports it.
+- [x] Keep weakly shared utilities outside candidate ownership while reporting their collaborations.
+- [x] Report classes with insufficient evidence as unassigned.
+- [x] Classify source elements by role, including domain, application, interface, infrastructure, persistence, test, migration, framework, shared, and unknown.
+- [x] Exclude tests and migrations from core membership by default while retaining them as supporting evidence.
+- [x] Prevent generic bootstrap and framework classes from establishing candidate ownership.
+- [x] Preserve controllers as eligible feature entrypoints.
+- [x] Add tests using multiple candidates, shared services, unrelated legacy classes, tests, migrations, and generic bootstrap classes.

@@ -20,6 +20,8 @@ final class Architecture
     private array $moduleCandidates = [];
     /** @var string[] */
     private array $unassignedClasses = [];
+    /** @var array<string, array<string, mixed>> */
+    private array $classMemberships = [];
 
     public function __construct(ProjectMetadata $metadata)
     {
@@ -137,6 +139,22 @@ final class Architecture
     }
 
     /**
+     * @param array<string, array<string, mixed>> $classMemberships
+     */
+    public function setClassMemberships(array $classMemberships): void
+    {
+        $this->classMemberships = $classMemberships;
+    }
+
+    /**
+     * @return array<string, array<string, mixed>>
+     */
+    public function getClassMemberships(): array
+    {
+        return $this->classMemberships;
+    }
+
+    /**
      * Serialize to array suitable for JSON output
      *
      * @return array<string, mixed>
@@ -153,6 +171,7 @@ final class Architecture
             'clusters' => $this->clusters,
             'moduleCandidates' => $this->moduleCandidates,
             'unassignedClasses' => $this->unassignedClasses,
+            'classMemberships' => $this->classMemberships,
         ];
     }
 }

@@ -194,7 +194,9 @@
           "name": { "type": "string" },
           "coreMembers": { "type": "array", "items": { "type": "string" } },
           "relatedMembers": { "type": "array", "items": { "type": "string" } },
+          "supportingMembers": { "type": "array", "items": { "type": "string" } },
           "entrypoints": { "type": "array", "items": { "type": "string" } },
+          "roles": { "type": "object", "additionalProperties": { "type": "string" } },
           "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
           "evidence": {
             "type": "object",
@@ -210,6 +212,19 @@
     "unassignedClasses": {
       "type": "array",
       "items": { "type": "string" }
+    },
+    "classMemberships": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": ["role", "primaryCandidate", "relatedCandidates", "supportingCandidates"],
+        "properties": {
+          "role": { "type": "string" },
+          "primaryCandidate": { "type": ["string", "null"] },
+          "relatedCandidates": { "type": "array", "items": { "type": "string" } },
+          "supportingCandidates": { "type": "array", "items": { "type": "string" } }
+        }
+      }
     }
   }
 }
