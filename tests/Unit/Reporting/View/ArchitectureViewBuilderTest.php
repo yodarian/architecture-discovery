@@ -27,12 +27,12 @@ final class ArchitectureViewBuilderTest extends TestCase
         $this->assertSame('1.2.3', $view->getModelVersion());
         $this->assertSame(['name' => 'demo', 'version' => '1.2.3'], $view->getProject());
         $this->assertSame(
-            ['fqn' => 'App\\Customer', 'type' => 'class', 'namespace' => 'App', 'name' => 'Customer'],
+            ['fqn' => 'App\\Customer', 'type' => 'class', 'namespace' => 'App', 'name' => 'Customer', 'abstract' => false],
             $view->getClasses()[0]
         );
         $this->assertArrayNotHasKey('file', $view->getClasses()[0]);
         $this->assertSame(
-            ['from' => 'App\\Order', 'to' => 'App\\Customer', 'type' => Dependency::TYPE_USES, 'weight' => 1],
+            ['from' => 'App\\Order', 'to' => 'App\\Customer', 'type' => Dependency::TYPE_USES, 'weight' => 1, 'metadata' => []],
             $view->getDependencies()[0]
         );
         $this->assertSame(['classCount' => 2, 'dependencyCount' => 1], $view->getMetrics());

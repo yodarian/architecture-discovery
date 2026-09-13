@@ -6,13 +6,13 @@
 
 **Status:** ready-for-agent
 
-- [ ] Render interface-target edges in green.
-- [ ] Render concrete-target edges in red.
-- [ ] Render abstract-target edges with a distinct amber treatment.
-- [ ] Render framework and external dependencies with a subdued distinct style.
-- [ ] Distinguish dependency types through labels, line styles, or arrow treatment.
-- [ ] Explain candidate confidence, shared candidates, namespace drift, and unassigned code in a legend.
-- [ ] Include the legend in both Graphviz-derived visualizations.
-- [ ] Ensure the fallback SVG communicates the essential visual meanings when Graphviz is unavailable.
-- [ ] Ensure color is not the only semantic signal.
-- [ ] Add focused tests for edge styling, labels, legend contents, and fallback output.
+- [x] Render interface-target edges in green.
+- [x] Render concrete-target edges in red.
+- [x] Render abstract-target edges with a distinct amber treatment.
+- [x] Render framework and external dependencies with a subdued distinct style.
+- [x] Distinguish dependency types through labels, line styles, or arrow treatment.
+- [x] Explain candidate confidence, shared candidates, namespace drift, and unassigned code in a legend.
+- [x] Include the legend in both Graphviz-derived visualizations.
+- [x] Ensure the fallback SVG communicates the essential visual meanings when Graphviz is unavailable.
+- [x] Ensure color is not the only semantic signal.
+- [x] Add focused tests for edge styling, labels, legend contents, and fallback output.

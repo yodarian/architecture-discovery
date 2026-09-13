@@ -26,6 +26,7 @@ final class ArchitectureViewBuilder
                     'type' => $class->getType(),
                     'namespace' => $class->getNamespace(),
                     'name' => $class->getName(),
+                    'abstract' => $class->isAbstract(),
                 ],
                 $architecture->getClasses()
             ),
@@ -35,6 +36,7 @@ final class ArchitectureViewBuilder
                     'to' => $dependency->getTo()->getFullyQualifiedName(),
                     'type' => $dependency->getType(),
                     'weight' => $dependency->getWeight(),
+                    'metadata' => $dependency->getMetadata(),
                 ],
                 $architecture->getDependencies()
             ),

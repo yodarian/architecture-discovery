@@ -74,5 +74,9 @@ final class ModuleOverviewRendererTest extends TestCase
         $this->assertStringContainsString('count=2, strength=5', $dot);
         $this->assertStringContainsString('LegacyOrder', $dot);
         $this->assertStringContainsString('Legend', $dot);
+
+        $svg = (new ModuleOverviewRenderer())->renderFallbackSvg($architecture);
+        $this->assertStringContainsString('Namespace drift: dotted', $svg);
+        $this->assertStringContainsString('Unassigned: dashed', $svg);
     }
 }

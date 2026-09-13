@@ -2,6 +2,7 @@
 namespace ArchitectureDiscovery\Reporting;
 
 use ArchitectureDiscovery\Domain\Model\Architecture;
+use ArchitectureDiscovery\Domain\Model\ClassEntity;
 
 /**
  * Renders module candidates as a compact graph separate from the raw class graph.
@@ -38,7 +39,8 @@ final class ModuleOverviewRenderer
                     continue;
                 }
                 $lines[] = '    ' . $this->quote($className)
-                    . ' [label=' . $this->quote($class->getName()) . '];';
+                    . ' [label=' . $this->quote($class->getName())
+                    . ($this->isDrifting($candidate, $className) ? ', style="dotted"' : '') . '];';
             }
             foreach ($candidate['relatedMembers'] as $className) {
                 if (isset($classOwners[$className])) {
@@ -68,7 +70,8 @@ final class ModuleOverviewRenderer
 
         foreach ($this->aggregateDependencies($architecture, $classOwners) as $edge) {
             $lines[] = '  ' . $this->quote($edge['from']) . ' -> ' . $this->quote($edge['to'])
-                . ' [label=' . $this->quote('count=' . $edge['count'] . ', strength=' . $edge['strength']) . '];';
+                . ' [label=' . $this->quote('types=' . implode('|', $edge['types']) . ', count=' . $edge['count'] . ', strength=' . $edge['strength'])
+                . ', color=' . $this->quote($edge['color']) . ', style=' . $this->quote($edge['framework'] ? 'dotted' : 'solid') . '];';
         }
 
         $lines[] = '  subgraph ' . $this->quote('cluster_legend') . ' {';
@@ -76,6 +79,11 @@ final class ModuleOverviewRenderer
         $lines[] = '    legend_confidence [label="Border: confidence"];';
         $lines[] = '    legend_unassigned [label="Dashed: candidate-adjacent unassigned", style=dashed];';
         $lines[] = '    legend_edge [label="Edge: aggregated dependency count and strength"];';
+        $lines[] = '    legend_abstraction [label="Target abstraction: green interface, red concrete, amber abstract"];';
+        $lines[] = '    legend_framework [label="Framework/external edge: gray dotted"];';
+        $lines[] = '    legend_relationship [label="Relationship type: edge label"];';
+        $lines[] = '    legend_shared [label="Shared candidate: explicit text"];';
+        $lines[] = '    legend_drift [label="Namespace drift: dotted"];';
         $lines[] = '  }';
         $lines[] = '}';
 
@@ -102,6 +110,11 @@ final class ModuleOverviewRenderer
             }
         }
 
+        return $this->renderFallbackSvg($architecture);
+    }
+
+    public function renderFallbackSvg(Architecture $architecture): string
+    {
         return $this->fallbackSvg($architecture);
     }
 
@@ -153,7 +166,7 @@ final class ModuleOverviewRenderer
 
     /**
      * @param array<string, string> $classOwners
-     * @return array<int, array{from: string, to: string, count: int, strength: int}>
+    * @return array<int, array{from: string, to: string, count: int, strength: int, types: string[], color: string, framework: bool}>
      */
     private function aggregateDependencies(Architecture $architecture, array $classOwners): array
     {
@@ -169,8 +182,22 @@ final class ModuleOverviewRenderer
             $aggregated[$key]['to'] = $classOwners[$toClass];
             $aggregated[$key]['count'] = ($aggregated[$key]['count'] ?? 0) + 1;
             $aggregated[$key]['strength'] = ($aggregated[$key]['strength'] ?? 0) + $dependency->getWeight();
+            $aggregated[$key]['types'][$dependency->getType()] = true;
+            $aggregated[$key]['framework'] = ($aggregated[$key]['framework'] ?? false) || (isset($dependency->getMetadata()['framework']));
+            $target = $dependency->getTo();
+            $aggregated[$key]['color'] = $target->getType() === ClassEntity::TYPE_INTERFACE
+                ? '#38a169'
+                : ($target->isAbstract() ? '#b7791f' : '#c53030');
         }
         $edges = array_values($aggregated);
+        foreach ($edges as &$edge) {
+            $edge['types'] = array_keys($edge['types']);
+            sort($edge['types']);
+            if ($edge['framework']) {
+                $edge['color'] = '#718096';
+            }
+        }
+        unset($edge);
         usort($edges, static fn(array $left, array $right): int => strcmp(
             $left['from'] . '>' . $left['to'],
             $right['from'] . '>' . $right['to']
@@ -181,6 +208,17 @@ final class ModuleOverviewRenderer
     private function quote(string $value): string
     {
         return '"' . addcslashes($value, "\\\"") . '"';
+    }
+
+    /** @param array<string, mixed> $candidate */
+    private function isDrifting(array $candidate, string $className): bool
+    {
+        foreach ($candidate['namespace']['driftingMembers'] ?? [] as $member) {
+            if (($member['class'] ?? null) === $className) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -210,7 +248,19 @@ final class ModuleOverviewRenderer
 
     private function fallbackSvg(Architecture $architecture): string
     {
-        $lines = ['Module Overview', 'Legend'];
+        $lines = [
+            'Module Overview',
+            'Legend',
+            'Interface target: green',
+            'Concrete target: red',
+            'Abstract target: amber',
+            'Framework/external: gray dotted',
+            'Relationship type: edge label',
+            'Candidate confidence: border and text',
+            'Shared candidate: explicit text',
+            'Namespace drift: dotted',
+            'Unassigned: dashed',
+        ];
         foreach ($architecture->getModuleCandidates() as $candidate) {
             $lines[] = $candidate['name'] . ' (confidence ' . number_format((float) $candidate['confidence'], 2) . ')';
         }

@@ -10,8 +10,8 @@ final class ArchitectureView
 {
     /**
      * @param array{name: string, version: string} $project
-     * @param array<int, array{fqn: string, type: string, namespace: string, name: string}> $classes
-     * @param array<int, array{from: string, to: string, type: string, weight: int}> $dependencies
+    * @param array<int, array{fqn: string, type: string, namespace: string, name: string, abstract: bool}> $classes
+    * @param array<int, array{from: string, to: string, type: string, weight: int, metadata: array<string, mixed>}> $dependencies
      * @param array<string, mixed> $metrics
      * @param array<int, array<string, mixed>> $clusters
      */
@@ -39,7 +39,7 @@ final class ArchitectureView
     }
 
     /**
-     * @return array<int, array{fqn: string, type: string, namespace: string, name: string}>
+    * @return array<int, array{fqn: string, type: string, namespace: string, name: string, abstract: bool}>
      */
     public function getClasses(): array
     {
@@ -47,7 +47,7 @@ final class ArchitectureView
     }
 
     /**
-     * @return array<int, array{from: string, to: string, type: string, weight: int}>
+    * @return array<int, array{from: string, to: string, type: string, weight: int, metadata: array<string, mixed>}>
      */
     public function getDependencies(): array
     {
