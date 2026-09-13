@@ -79,6 +79,8 @@ PHP
         $this->assertSame(2, $dependenciesByType['dynamic_call']['weight']);
         $this->assertArrayHasKey('metrics', $data);
         $this->assertArrayHasKey('clusters', $data);
+        $this->assertArrayHasKey('moduleCandidates', $data);
+        $this->assertSame([], $data['moduleCandidates']);
         $this->assertFileExists($this->tempDir . '/out/graph.dot');
         $this->assertFileExists($this->tempDir . '/out/graph.svg');
         $this->assertFileExists($this->tempDir . '/out/index.html');

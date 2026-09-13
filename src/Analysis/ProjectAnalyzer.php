@@ -59,6 +59,7 @@ final class ProjectAnalyzer
 
         $this->addStructuralDependencies($architecture);
         $this->addFrameworkDependencies($architecture, $frameworkRelationships);
+        $architecture->setModuleCandidates((new ModuleCandidateDiscoverer())->discover($architecture));
 
         $onProgress("Extracted {$classCount} classes, interfaces, and traits");
     }

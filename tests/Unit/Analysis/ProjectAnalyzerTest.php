@@ -106,6 +106,34 @@ PHP
         $this->assertNotContains('Order', $usesTargets);
     }
 
+    public function testDiscoversModuleCandidatesAfterAnalyzingProject(): void
+    {
+        file_put_contents($this->tempDir . '/TodoController.php', <<<'PHP'
+<?php
+namespace App\Http;
+class TodoController {}
+PHP
+        );
+        file_put_contents($this->tempDir . '/TodoService.php', <<<'PHP'
+<?php
+namespace App\Application;
+class TodoService {}
+PHP
+        );
+
+        $architecture = $this->newArchitecture();
+        (new ProjectAnalyzer())->analyze($architecture, $this->tempDir);
+
+        $this->assertSame('module-todo', $architecture->getModuleCandidates()[0]['id']);
+        $this->assertSame(
+            ['App\\Application\\TodoService', 'App\\Http\\TodoController'],
+            $architecture->getModuleCandidates()[0]['coreMembers']
+        );
+        $this->assertSame([], $architecture->getUnassignedClasses());
+        $serialized = $architecture->toArray();
+        $this->assertSame('module-todo', $serialized['moduleCandidates'][0]['id']);
+    }
+
     public function testBindsExtendsDependencyBetweenExtractedClasses(): void
     {
         file_put_contents($this->tempDir . '/Base.php', <<<'PHP'

@@ -16,6 +16,10 @@ final class Architecture
     private array $metrics = [];
     /** @var array<int, array<string, mixed>> */
     private array $clusters = [];
+    /** @var array<int, array<string, mixed>> */
+    private array $moduleCandidates = [];
+    /** @var string[] */
+    private array $unassignedClasses = [];
 
     public function __construct(ProjectMetadata $metadata)
     {
@@ -101,6 +105,38 @@ final class Architecture
     }
 
     /**
+     * @param array<int, array<string, mixed>> $moduleCandidates
+     */
+    public function setModuleCandidates(array $moduleCandidates): void
+    {
+        $this->moduleCandidates = $moduleCandidates;
+    }
+
+    /**
+     * @return array<int, array<string, mixed>>
+     */
+    public function getModuleCandidates(): array
+    {
+        return $this->moduleCandidates;
+    }
+
+    /**
+     * @param string[] $unassignedClasses
+     */
+    public function setUnassignedClasses(array $unassignedClasses): void
+    {
+        $this->unassignedClasses = $unassignedClasses;
+    }
+
+    /**
+     * @return string[]
+     */
+    public function getUnassignedClasses(): array
+    {
+        return $this->unassignedClasses;
+    }
+
+    /**
      * Serialize to array suitable for JSON output
      *
      * @return array<string, mixed>
@@ -115,6 +151,8 @@ final class Architecture
             'dependencies' => array_map(fn(Dependency $d) => $d->toArray(), $this->getDependencies()),
             'metrics' => $this->metrics,
             'clusters' => $this->clusters,
+            'moduleCandidates' => $this->moduleCandidates,
+            'unassignedClasses' => $this->unassignedClasses,
         ];
     }
 }
