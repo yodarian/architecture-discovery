@@ -9,6 +9,13 @@ use ArchitectureDiscovery\Domain\Model\ClassEntity;
  */
 final class ModuleCandidateDiscoverer
 {
+    /**
+     * @param array<string, string[]> $namespacePatterns Candidate token to expected namespace patterns.
+     */
+    public function __construct(private array $namespacePatterns = [])
+    {
+    }
+
     /** @var array<string, true> */
     private const STOP_WORDS = [
         'app' => true,
@@ -119,6 +126,31 @@ final class ModuleCandidateDiscoverer
             }
             $supportingMembers = array_keys($supportingMembers);
             sort($supportingMembers);
+            $expectedPatterns = $this->namespacePatterns[$token] ?? ['*\\' . ucfirst($token)];
+            $alignedMembers = [];
+            $driftingMembers = [];
+            foreach ($memberNames as $className) {
+                $class = $architecture->getClass($className);
+                if ($class === null) {
+                    continue;
+                }
+                if ($this->matchesNamespacePattern($class->getNamespace(), $expectedPatterns)) {
+                    $alignedMembers[] = $className;
+                    continue;
+                }
+                $driftingMembers[] = [
+                    'class' => $className,
+                    'namespace' => $class->getNamespace(),
+                    'file' => $class->getFile(),
+                    'role' => $roles[$className],
+                    'confidence' => 0.5,
+                    'evidence' => [
+                        'token' => $token,
+                        'reason' => 'namespace_pattern_mismatch',
+                    ],
+                    'suggestedNamespace' => $this->suggestedNamespace($class, $token, $expectedPatterns),
+                ];
+            }
             $confidence = round(
                 (isset($signals['name']) ? 0.5 : 0.0)
                 + (isset($signals['namespace']) ? 0.3 : 0.0)
@@ -149,6 +181,11 @@ final class ModuleCandidateDiscoverer
                         ],
                         $supportingMembers
                     ),
+                ],
+                'namespace' => [
+                    'expectedPatterns' => $expectedPatterns,
+                    'alignedMembers' => $alignedMembers,
+                    'driftingMembers' => $driftingMembers,
                 ],
             ];
         }
@@ -241,6 +278,35 @@ final class ModuleCandidateDiscoverer
     private function isCoreEligible(string $role): bool
     {
         return !in_array($role, ['test', 'migration', 'framework'], true);
+    }
+
+    /**
+     * @param string[] $patterns
+     */
+    private function matchesNamespacePattern(string $namespace, array $patterns): bool
+    {
+        foreach ($patterns as $pattern) {
+            $quoted = preg_quote(trim($pattern, '\\'), '/');
+            $regex = '/^' . str_replace('\\*', '.*', $quoted) . '(?:\\\\|$)/';
+            if (preg_match($regex, trim($namespace, '\\')) === 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param string[] $patterns
+     */
+    private function suggestedNamespace(ClassEntity $class, string $token, array $patterns): string
+    {
+        if (isset($this->namespacePatterns[$token])) {
+            return trim($patterns[0], '\\');
+        }
+
+        $segments = array_values(array_filter(explode('\\', $class->getNamespace())));
+        $root = $segments[0] ?? '';
+        return $root === '' ? ucfirst($token) : $root . '\\' . ucfirst($token);
     }
 
     /**

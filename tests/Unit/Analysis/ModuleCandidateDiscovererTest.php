@@ -102,4 +102,69 @@ final class ModuleCandidateDiscovererTest extends TestCase
         $this->assertSame('framework', $architecture->getClassMemberships()['App\\Kernel']['role']);
         $this->assertContains('App\\Legacy\\Invoice', $architecture->getUnassignedClasses());
     }
+
+    public function testReportsNamespaceAlignmentDriftAndSuggestedLocation(): void
+    {
+        $architecture = new Architecture(new ProjectMetadata(
+            'namespace-demo',
+            '/tmp/namespace-demo',
+            '1.0.0',
+            new DateTimeImmutable('2026-01-01T00:00:00Z')
+        ));
+        $aligned = new ClassEntity(
+            'App\\Domain\\Todo\\Todo',
+            'class',
+            'App\\Domain\\Todo',
+            'Todo',
+            'src/Domain/Todo/Todo.php',
+            1
+        );
+        $drifting = new ClassEntity(
+            'App\\Legacy\\TodoService',
+            'class',
+            'App\\Legacy',
+            'TodoService',
+            'src/Legacy/TodoService.php',
+            1
+        );
+        $configured = new ClassEntity(
+            'App\\Features\\Todo\\TodoController',
+            'class',
+            'App\\Features\\Todo',
+            'TodoController',
+            'src/Features/Todo/TodoController.php',
+            1
+        );
+        foreach ([$aligned, $drifting, $configured] as $class) {
+            $architecture->addClass($class);
+        }
+
+        $candidates = (new ModuleCandidateDiscoverer([
+            'todo' => ['App\\Features\\Todo'],
+        ]))->discover($architecture);
+        $todo = array_values(array_filter($candidates, static fn(array $candidate): bool => $candidate['id'] === 'module-todo'))[0];
+
+        $this->assertSame(['App\\Features\\Todo'], $todo['namespace']['expectedPatterns']);
+        $this->assertSame(['App\\Features\\Todo\\TodoController'], $todo['namespace']['alignedMembers']);
+        $this->assertSame([
+            [
+                'class' => 'App\\Domain\\Todo\\Todo',
+                'namespace' => 'App\\Domain\\Todo',
+                'file' => 'src/Domain/Todo/Todo.php',
+                'role' => 'domain',
+                'confidence' => 0.5,
+                'evidence' => ['token' => 'todo', 'reason' => 'namespace_pattern_mismatch'],
+                'suggestedNamespace' => 'App\\Features\\Todo',
+            ],
+            [
+                'class' => 'App\\Legacy\\TodoService',
+                'namespace' => 'App\\Legacy',
+                'file' => 'src/Legacy/TodoService.php',
+                'role' => 'application',
+                'confidence' => 0.5,
+                'evidence' => ['token' => 'todo', 'reason' => 'namespace_pattern_mismatch'],
+                'suggestedNamespace' => 'App\\Features\\Todo',
+            ],
+        ], $todo['namespace']['driftingMembers']);
+    }
 }

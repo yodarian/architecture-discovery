@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Treat namespace alignment as distinct from candidate membership.
-- [ ] Infer alignment from candidate vocabulary and support configured namespace patterns.
-- [ ] Identify candidate members whose current namespaces are outside the expected pattern.
-- [ ] Report aligned and drifting members separately in the candidate evidence.
-- [ ] Include actual namespace, source location, role, confidence, and evidence for drifting classes.
-- [ ] Provide a suggested target location without changing files, namespaces, imports, or analyzed-project contents.
-- [ ] Add tests for aligned classes, scattered legacy classes, configured patterns, and informational suggestions.
+- [x] Treat namespace alignment as distinct from candidate membership.
+- [x] Infer alignment from candidate vocabulary and support configured namespace patterns.
+- [x] Identify candidate members whose current namespaces are outside the expected pattern.
+- [x] Report aligned and drifting members separately in the candidate evidence.
+- [x] Include actual namespace, source location, role, confidence, and evidence for drifting classes.
+- [x] Provide a suggested target location without changing files, namespaces, imports, or analyzed-project contents.
+- [x] Add tests for aligned classes, scattered legacy classes, configured patterns, and informational suggestions.

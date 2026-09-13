@@ -188,7 +188,7 @@
       "description": "Deterministic module candidate hypotheses, kept separate from raw graph clusters.",
       "items": {
         "type": "object",
-        "required": ["id", "name", "coreMembers", "relatedMembers", "entrypoints", "confidence", "evidence"],
+        "required": ["id", "name", "coreMembers", "relatedMembers", "supportingMembers", "entrypoints", "confidence", "evidence", "namespace"],
         "properties": {
           "id": { "type": "string" },
           "name": { "type": "string" },
@@ -204,6 +204,30 @@
             "properties": {
               "token": { "type": "string" },
               "signals": { "type": "object" }
+            }
+          },
+          "namespace": {
+            "type": "object",
+            "required": ["expectedPatterns", "alignedMembers", "driftingMembers"],
+            "properties": {
+              "expectedPatterns": { "type": "array", "items": { "type": "string" } },
+              "alignedMembers": { "type": "array", "items": { "type": "string" } },
+              "driftingMembers": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "required": ["class", "namespace", "file", "role", "confidence", "evidence", "suggestedNamespace"],
+                  "properties": {
+                    "class": { "type": "string" },
+                    "namespace": { "type": "string" },
+                    "file": { "type": "string" },
+                    "role": { "type": "string" },
+                    "confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+                    "evidence": { "type": "object" },
+                    "suggestedNamespace": { "type": "string" }
+                  }
+                }
+              }
             }
           }
         }
