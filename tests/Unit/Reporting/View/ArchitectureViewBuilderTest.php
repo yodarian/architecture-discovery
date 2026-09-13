@@ -21,6 +21,9 @@ final class ArchitectureViewBuilderTest extends TestCase
         $architecture->addDependency(new Dependency($order, $customer, Dependency::TYPE_USES, 1));
         $architecture->setMetrics(['classCount' => 2, 'dependencyCount' => 1]);
         $architecture->setClusters([['id' => 'cluster-1', 'classes' => ['App\\Order', 'App\\Customer']]]);
+        $architecture->setModuleCandidates([['id' => 'module-order', 'confidence' => 0.8]]);
+        $architecture->setClassMemberships(['App\\Order' => ['primaryCandidate' => 'module-order']]);
+        $architecture->setUnassignedClasses(['App\\Legacy']);
 
         $view = (new ArchitectureViewBuilder())->build($architecture);
 
@@ -37,5 +40,8 @@ final class ArchitectureViewBuilderTest extends TestCase
         );
         $this->assertSame(['classCount' => 2, 'dependencyCount' => 1], $view->getMetrics());
         $this->assertSame([['id' => 'cluster-1', 'classes' => ['App\\Order', 'App\\Customer']]], $view->getClusters());
+        $this->assertSame([['id' => 'module-order', 'confidence' => 0.8]], $view->getModuleCandidates());
+        $this->assertSame(['App\\Order' => ['primaryCandidate' => 'module-order']], $view->getClassMemberships());
+        $this->assertSame(['App\\Legacy'], $view->getUnassignedClasses());
     }
 }

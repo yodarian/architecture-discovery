@@ -41,7 +41,10 @@ final class ArchitectureViewBuilder
                 $architecture->getDependencies()
             ),
             $architecture->getMetrics(),
-            $architecture->getClusters()
+            $architecture->getClusters(),
+            $architecture->getModuleCandidates(),
+            $architecture->getClassMemberships(),
+            $architecture->getUnassignedClasses()
         );
     }
 }

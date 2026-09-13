@@ -26,6 +26,9 @@ final class ArchitectureContextBuilder
             'classes' => $view->getClasses(),
             'dependencies' => $view->getDependencies(),
             'clusters' => $view->getClusters(),
+            'moduleCandidates' => $view->getModuleCandidates(),
+            'classMemberships' => $view->getClassMemberships(),
+            'unassignedClasses' => $view->getUnassignedClasses(),
         ];
     }
 }

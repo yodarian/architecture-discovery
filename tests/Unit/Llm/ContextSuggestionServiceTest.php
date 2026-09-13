@@ -52,4 +52,45 @@ final class ContextSuggestionServiceTest extends TestCase
         $this->assertArrayNotHasKey('file', $receivedContext['classes'][0]);
         $this->assertSame('Order Management', $result['suggestedInterpretations'][0]['name']);
     }
+
+    public function testContextIncludesStructuredModuleCandidateFactsWithoutProviderSpecificInterpretation(): void
+    {
+        $architecture = new Architecture(new ProjectMetadata('demo', '/secret/source', '1.0.0', new DateTimeImmutable()));
+        $architecture->setModuleCandidates([[
+            'id' => 'module-todo',
+            'name' => 'Todo',
+            'coreMembers' => ['App\\Todo'],
+            'relatedMembers' => ['App\\Shared\\Logger'],
+            'supportingMembers' => [],
+            'confidence' => 0.8,
+            'evidence' => ['token' => 'todo', 'signals' => ['name' => ['App\\Todo']]],
+            'namespace' => [
+                'expectedPatterns' => ['App\\Todo'],
+                'alignedMembers' => [],
+                'driftingMembers' => [[
+                    'class' => 'App\\Todo',
+                    'namespace' => 'App',
+                    'file' => 'src/Todo.php',
+                    'role' => 'domain',
+                    'confidence' => 0.5,
+                    'evidence' => ['reason' => 'namespace_pattern_mismatch'],
+                    'suggestedNamespace' => 'App\\Todo',
+                ]],
+            ],
+        ]]);
+        $architecture->setClassMemberships([
+            'App\\Todo' => ['role' => 'domain', 'primaryCandidate' => 'module-todo', 'relatedCandidates' => [], 'supportingCandidates' => []],
+            'App\\Legacy' => ['role' => 'unknown', 'primaryCandidate' => null, 'relatedCandidates' => [], 'supportingCandidates' => []],
+        ]);
+        $architecture->setUnassignedClasses(['App\\Legacy']);
+
+        $context = (new ArchitectureContextBuilder())->build($architecture);
+
+        $this->assertSame('module-todo', $context['moduleCandidates'][0]['id']);
+        $this->assertSame('todo', $context['moduleCandidates'][0]['evidence']['token']);
+        $this->assertSame('module-todo', $context['classMemberships']['App\\Todo']['primaryCandidate']);
+        $this->assertSame(['App\\Legacy'], $context['unassignedClasses']);
+        $this->assertArrayHasKey('namespace', $context['moduleCandidates'][0]);
+        $this->assertArrayNotHasKey('boundedContexts', $context);
+    }
 }

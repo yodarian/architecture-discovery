@@ -6,10 +6,10 @@
 
 **Status:** ready-for-agent
 
-- [ ] Expose module candidates through the normalized reporting view.
-- [ ] Include candidate evidence, confidence, and membership categories.
-- [ ] Include primary ownership, related candidates, shared candidates, and unassigned classes.
-- [ ] Include namespace alignment and namespace drift.
-- [ ] Preserve existing normalized-view consumers and architecture fields.
-- [ ] Do not call an LLM or infer bounded contexts in the static pipeline.
-- [ ] Add tests proving the context contains structured evidence and remains provider-agnostic.
+- [x] Expose module candidates through the normalized reporting view.
+- [x] Include candidate evidence, confidence, and membership categories.
+- [x] Include primary ownership, related candidates, shared candidates, and unassigned classes.
+- [x] Include namespace alignment and namespace drift.
+- [x] Preserve existing normalized-view consumers and architecture fields.
+- [x] Do not call an LLM or infer bounded contexts in the static pipeline.
+- [x] Add tests proving the context contains structured evidence and remains provider-agnostic.

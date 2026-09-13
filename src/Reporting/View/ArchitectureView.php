@@ -14,6 +14,9 @@ final class ArchitectureView
     * @param array<int, array{from: string, to: string, type: string, weight: int, metadata: array<string, mixed>}> $dependencies
      * @param array<string, mixed> $metrics
      * @param array<int, array<string, mixed>> $clusters
+    * @param array<int, array<string, mixed>> $moduleCandidates
+    * @param array<string, array<string, mixed>> $classMemberships
+    * @param string[] $unassignedClasses
      */
     public function __construct(
         private string $modelVersion,
@@ -21,7 +24,10 @@ final class ArchitectureView
         private array $classes,
         private array $dependencies,
         private array $metrics,
-        private array $clusters
+        private array $clusters,
+        private array $moduleCandidates = [],
+        private array $classMemberships = [],
+        private array $unassignedClasses = []
     ) {
     }
 
@@ -68,5 +74,23 @@ final class ArchitectureView
     public function getClusters(): array
     {
         return $this->clusters;
+    }
+
+    /** @return array<int, array<string, mixed>> */
+    public function getModuleCandidates(): array
+    {
+        return $this->moduleCandidates;
+    }
+
+    /** @return array<string, array<string, mixed>> */
+    public function getClassMemberships(): array
+    {
+        return $this->classMemberships;
+    }
+
+    /** @return string[] */
+    public function getUnassignedClasses(): array
+    {
+        return $this->unassignedClasses;
     }
 }
